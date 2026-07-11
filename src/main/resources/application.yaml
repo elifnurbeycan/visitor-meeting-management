@@ -1,3 +1,11 @@
 spring:
   application:
-    name: visitor-meeting-managment
+    name: meeting-room-management
+  profiles:
+    active: dev
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, loggers, circuitbreakers
