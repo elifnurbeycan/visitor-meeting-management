@@ -1,0 +1,75 @@
+package com.yasarbilgi.visitormeetingmanagment.company.entity;
+
+import com.yasarbilgi.visitormeetingmanagment.common.base.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
+@Getter
+@SuperBuilder
+@Entity
+@Table(
+        name = "companies",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_companies_slug", columnNames = "slug"),
+                @UniqueConstraint(name = "uk_companies_contact_email", columnNames = "contact_email"),
+                @UniqueConstraint(name = "uk_companies_tax_number", columnNames = "tax_number")
+        },
+        indexes = {
+                @Index(name = "idx_companies_active", columnList = "active")
+        }
+)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Company extends BaseEntity {
+
+    private static final String SLUG_PATTERN = "^[a-z0-9-]+$";
+
+    @Column(name = "name", nullable = false, length = 150)
+    private String name;
+
+    @Column(name = "slug", nullable = false, length = 100)
+    private String slug;
+
+    @Column(name = "description", length = 1000)
+    private String description;
+
+    @Column(name = "tax_number", length = 20)
+    private String taxNumber;
+
+    @Column(name = "contact_email", nullable = false, length = 150)
+    private String contactEmail;
+
+    @Column(name = "contact_phone", length = 20)
+    private String contactPhone;
+
+    @Column(name = "address", length = 500)
+    private String address;
+
+    @Column(name = "industry", length = 100)
+    private String industry;
+
+//    public void changeSlug(String newSlug) {
+//        validateSlug(newSlug);
+//        this.slug = newSlug;
+//    }
+//
+//    public void rename(String newName) {
+//        if (newName == null || newName.isBlank()) {
+//            throw new BusinessException("Şirket adı boş olamaz");
+//        }
+//        this.name = newName;
+//    }
+//
+//    private static void validateSlug(String candidateSlug) {
+//        if (candidateSlug == null || !candidateSlug.matches(SLUG_PATTERN)) {
+//            throw new BusinessException(
+//                    "Slug sadece küçük harf, rakam ve tire içerebilir: " + candidateSlug);
+//        }
+//    }
+}
