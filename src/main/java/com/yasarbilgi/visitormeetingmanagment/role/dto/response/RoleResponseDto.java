@@ -5,7 +5,7 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class RoleResponse_dto {
+public class RoleResponseDto {
 
     private Long id;
     private String name;

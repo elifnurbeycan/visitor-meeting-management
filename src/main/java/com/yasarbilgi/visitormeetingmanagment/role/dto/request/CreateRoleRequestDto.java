@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class UpdateRoleRequest_dto {
+public class CreateRoleRequestDto {
 
     @NotBlank
     @Size(max = 100)
