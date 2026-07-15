@@ -2,17 +2,21 @@ package com.yasarbilgi.visitormeetingmanagment.role.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.Builder;
 
-@Getter
-@NoArgsConstructor
-public class CreateRoleRequestDto {
+import java.util.Set;
 
-    @NotBlank
-    @Size(max = 100)
-    private String name;
+@Builder
+public record CreateRoleRequestDto(
 
-    @Size(max = 500)
-    private String description;
+        @NotBlank(message = "{role.name.notBlank}")
+        @Size(max = 100, message = "{role.name.size}")
+        String name,
+
+        @Size(max = 500, message = "{role.description.size}")
+        String description,
+
+        Set<Long> permissionIds
+
+) {
 }

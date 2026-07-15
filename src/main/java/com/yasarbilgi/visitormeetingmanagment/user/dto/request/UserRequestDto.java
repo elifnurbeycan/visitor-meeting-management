@@ -3,33 +3,34 @@ package com.yasarbilgi.visitormeetingmanagment.user.dto.request;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.Builder;
 
 import java.util.Set;
 
+@Builder
 public record UserRequestDto(
 
-        @NotBlank(message = "Ad boş olamaz")
-        @Size(max = 100, message = "Ad en fazla 100 karakter olabilir")
+        @NotBlank(message = "{user.firstName.notBlank}")
+        @Size(max = 100, message = "{user.firstName.size}")
         String firstName,
 
-        @NotBlank(message = "Soyad boş olamaz")
-        @Size(max = 100, message = "Soyad en fazla 100 karakter olabilir")
+        @NotBlank(message = "{user.lastName.notBlank}")
+        @Size(max = 100, message = "{user.lastName.size}")
         String lastName,
 
-        @NotBlank(message = "Email boş olamaz")
-        @Email(message = "Geçerli bir email adresi giriniz")
-        @Size(max = 150, message = "Email en fazla 150 karakter olabilir")
+        @NotBlank(message = "{user.email.notBlank}")
+        @Email(message = "{user.email.invalid}")
+        @Size(max = 150, message = "{user.email.size}")
         String email,
 
-        @NotBlank(message = "Şifre boş olamaz")
-        @Size(min = 8, max = 100, message = "Şifre en az 8 karakter olmalıdır")
+        @NotBlank(message = "{user.password.notBlank}")
+        @Size(min = 8, max = 100, message = "{user.password.size}")
         String password,
 
         Long jobTitleId,
 
-        @NotEmpty(message = "Kullanıcıya en az bir rol atanmalıdır")
+        @NotEmpty(message = "{user.roleIds.notEmpty}")
         Set<Long> roleIds
 
 ) {

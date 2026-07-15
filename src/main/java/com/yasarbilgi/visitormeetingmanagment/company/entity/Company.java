@@ -1,6 +1,8 @@
 package com.yasarbilgi.visitormeetingmanagment.company.entity;
 
 import com.yasarbilgi.visitormeetingmanagment.common.base.BaseEntity;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
@@ -18,7 +20,6 @@ import lombok.experimental.SuperBuilder;
         name = "companies",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_companies_slug", columnNames = "slug"),
-                @UniqueConstraint(name = "uk_companies_contact_email", columnNames = "contact_email"),
                 @UniqueConstraint(name = "uk_companies_tax_number", columnNames = "tax_number")
         },
         indexes = {
@@ -54,22 +55,42 @@ public class Company extends BaseEntity {
     @Column(name = "industry", length = 100)
     private String industry;
 
-//    public void changeSlug(String newSlug) {
-//        validateSlug(newSlug);
-//        this.slug = newSlug;
-//    }
-//
-//    public void rename(String newName) {
-//        if (newName == null || newName.isBlank()) {
-//            throw new BusinessException("Şirket adı boş olamaz");
-//        }
-//        this.name = newName;
-//    }
-//
-//    private static void validateSlug(String candidateSlug) {
-//        if (candidateSlug == null || !candidateSlug.matches(SLUG_PATTERN)) {
-//            throw new BusinessException(
-//                    "Slug sadece küçük harf, rakam ve tire içerebilir: " + candidateSlug);
-//        }
-//    }
+    public void rename(String newName) {
+        if (newName == null || newName.isBlank()) {
+            throw new BusinessException(ErrorCode.COMPANY_NAME_REQUIRED);
+        }
+        this.name = newName;
+    }
+
+    public void changeSlug(String newSlug) {
+        validateSlug(newSlug);
+        this.slug = newSlug;
+    }
+
+    public void updateContactInfo(String email, String phone, String address) {
+        if (email == null || email.isBlank()) {
+            throw new BusinessException(ErrorCode.COMPANY_EMAIL_REQUIRED);
+        }
+        this.contactEmail = email;
+        this.contactPhone = phone;
+        this.address = address;
+    }
+
+    public void updateDescription(String description) {
+        this.description = description;
+    }
+
+    public void updateTaxNumber(String taxNumber) {
+        this.taxNumber = taxNumber;
+    }
+
+    public void updateIndustry(String industry) {
+        this.industry = industry;
+    }
+
+    private static void validateSlug(String candidateSlug) {
+        if (candidateSlug == null || !candidateSlug.matches(SLUG_PATTERN)) {
+            throw new BusinessException(ErrorCode.COMPANY_INVALID_SLUG);
+        }
+    }
 }

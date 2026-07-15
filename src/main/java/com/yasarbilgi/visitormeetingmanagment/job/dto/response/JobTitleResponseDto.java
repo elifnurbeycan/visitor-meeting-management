@@ -1,23 +1,24 @@
 package com.yasarbilgi.visitormeetingmanagment.job.dto.response;
 
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
+import java.util.Set;
+
 @Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class JobTitleResponseDto {
+public record JobTitleResponseDto(
 
-    private Long id;
+        Long id,
+        String name,
+        String description,
+        Set<RoleSummary> defaultRoles,
+        boolean active
 
-    private String name;
+) {
 
-    private String description;
-
-    private Boolean hasDefaultRole;
-
-    private Boolean active;
+    @Builder
+    public record RoleSummary(
+            Long id,
+            String name
+    ) {
+    }
 }

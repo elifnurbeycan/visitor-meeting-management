@@ -1,8 +1,11 @@
 package com.yasarbilgi.visitormeetingmanagment.user.dto.response;
 
+import lombok.Builder;
+
 import java.time.Instant;
 import java.util.Set;
 
+@Builder
 public record UserResponseDto(
 
         Long id,
@@ -18,12 +21,14 @@ public record UserResponseDto(
 
 ) {
 
+    @Builder
     public record JobTitleSummary(
             Long id,
             String name
     ) {
     }
 
+    @Builder
     public record RoleSummary(
             Long id,
             String name

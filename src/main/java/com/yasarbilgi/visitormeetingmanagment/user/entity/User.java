@@ -1,7 +1,11 @@
 package com.yasarbilgi.visitormeetingmanagment.user.entity;
 
 import com.yasarbilgi.visitormeetingmanagment.common.base.TenantBaseEntity;
-    import jakarta.persistence.Column;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.job.entity.JobTitle;
+import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
@@ -57,7 +61,7 @@ public class User extends TenantBaseEntity {
     private boolean owner = false;
 
     @Builder.Default
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -79,7 +83,7 @@ public class User extends TenantBaseEntity {
 
     public void revokeRole(Role role) {
         if (this.owner) {
-            throw new BusinessException("Owner kullanıcının rolleri bu şekilde değiştirilemez");
+            throw new BusinessException(ErrorCode.USER_OWNER_ROLE_MODIFICATION_FORBIDDEN);
         }
         this.roles.remove(role);
     }
@@ -102,7 +106,7 @@ public class User extends TenantBaseEntity {
 
     public void deactivateIfAllowed() {
         if (this.owner) {
-            throw new BusinessException("Owner kullanıcı pasife alınamaz, önce ownerlığı devretmeli");
+            throw new BusinessException(ErrorCode.USER_OWNER_CANNOT_BE_DEACTIVATED);
         }
         this.deactivate();
     }
