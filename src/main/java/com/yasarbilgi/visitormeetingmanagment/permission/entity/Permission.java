@@ -1,12 +1,13 @@
 package com.yasarbilgi.visitormeetingmanagment.permission.entity;
 
 import com.yasarbilgi.visitormeetingmanagment.common.base.BaseEntity;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -23,15 +24,16 @@ import lombok.experimental.SuperBuilder;
                 @UniqueConstraint(name = "uk_permissions_code", columnNames = "code")
         },
         indexes = {
-                @Index(name = "idx_permissions_category_id", columnList = "category_id"),
+                @Index(name = "idx_permissions_category", columnList = "category"),
                 @Index(name = "idx_permissions_active", columnList = "active")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Permission extends BaseEntity {
 
-    @Column(name = "code", nullable = false, length = 100)
-    private String code;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "code", nullable = false, length = 100, updatable = false)
+    private PermissionCode code;
 
     @Column(name = "name", nullable = false, length = 150)
     private String name;
@@ -39,10 +41,31 @@ public class Permission extends BaseEntity {
     @Column(name = "description", length = 500)
     private String description;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", nullable = false, updatable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "category", nullable = false, length = 50)
     private PermissionCategory category;
+
+    @Column(name = "is_system_permission", nullable = false)
+    private boolean systemPermission;
 
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
+
+    public void rename(String newName) {
+        if (newName == null || newName.isBlank()) {
+            throw new BusinessException(ErrorCode.PERMISSION_NAME_REQUIRED);
+        }
+        this.name = newName;
+    }
+
+    public void updateDescription(String description) {
+        this.description = description;
+    }
+
+    public void deactivateIfAllowed() {
+        if (this.systemPermission) {
+            throw new BusinessException(ErrorCode.SYSTEM_PERMISSION_CANNOT_BE_DEACTIVATED);
+        }
+        deactivate();
+    }
 }
