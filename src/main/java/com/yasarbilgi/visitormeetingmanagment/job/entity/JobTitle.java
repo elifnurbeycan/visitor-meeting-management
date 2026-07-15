@@ -1,14 +1,26 @@
 package com.yasarbilgi.visitormeetingmanagment.job.entity;
 
 import com.yasarbilgi.visitormeetingmanagment.common.base.TenantBaseEntity;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.role.entity.Role; // paket yolunu kendi projene göre düzelt
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @SuperBuilder
@@ -23,12 +35,47 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class JobTitle extends TenantBaseEntity {
 
-    @Column(name = "job_name", nullable = false, length = 100)
+    @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Column(name = "job_description", length = 500)
+    @Column(name = "description", length = 500)
     private String description;
 
-    @Column(name = "job_has_default_role", nullable = false)
-    private boolean hasDefaultRole;
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "job_title_default_roles",
+            joinColumns = @JoinColumn(name = "job_title_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_id"),
+            uniqueConstraints = @UniqueConstraint(
+                    name = "uk_job_title_default_roles",
+                    columnNames = {"job_title_id", "role_id"}
+            )
+    )
+    private Set<Role> defaultRoles = new HashSet<>();
+
+    public void addDefaultRole(Role role) {
+        this.defaultRoles.add(role);
+    }
+
+    public void removeDefaultRole(Role role) {
+        this.defaultRoles.remove(role);
+    }
+
+    public boolean hasDefaultRole(Role role) {
+        return this.defaultRoles.contains(role);
+    }
+
+    public void rename(String newName) {
+        if (newName == null || newName.isBlank()) {
+            throw new BusinessException(
+                    ErrorCode.JOB_TITLE_NAME_REQUIRED
+            );
+        }
+        this.name = newName;
+    }
+
+    public void updateDescription(String description) {
+        this.description = description;
+    }
 }

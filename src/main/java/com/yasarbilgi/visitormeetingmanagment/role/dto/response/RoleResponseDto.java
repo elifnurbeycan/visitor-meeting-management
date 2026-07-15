@@ -1,14 +1,25 @@
 package com.yasarbilgi.visitormeetingmanagment.role.dto.response;
 
 import lombok.Builder;
-import lombok.Getter;
 
-@Getter
+import java.util.Set;
+
 @Builder
-public class RoleResponseDto {
+public record RoleResponseDto(
 
-    private Long id;
-    private String name;
-    private String description;
-    private boolean systemRole;
+        Long id,
+        String name,
+        String description,
+        boolean systemRole,
+        Set<PermissionSummary> permissions
+
+) {
+
+    @Builder
+    public record PermissionSummary(
+            Long id,
+            String code,
+            String name
+    ) {
+    }
 }

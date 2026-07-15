@@ -9,36 +9,36 @@ import lombok.Builder;
 @Builder
 public record UpdateCompanyRequestDto(
 
-        @NotBlank(message = "Company name cannot be blank.")
-        @Size(max = 150, message = "Company name cannot exceed 150 characters.")
+        @NotBlank(message = "{company.name.notBlank}")
+        @Size(max = 150, message = "{company.name.size}")
         String name,
 
-        @NotBlank(message = "Slug cannot be blank.")
-        @Size(max = 100, message = "Slug cannot exceed 100 characters.")
+        @NotBlank(message = "{company.slug.notBlank}")
+        @Size(max = 100, message = "{company.slug.size}")
         @Pattern(
                 regexp = "^[a-z0-9-]+$",
-                message = "Slug can only contain lowercase letters, numbers and hyphens."
+                message = "{company.slug.pattern}"
         )
         String slug,
 
-        @Size(max = 1000, message = "Description cannot exceed 1000 characters.")
+        @Size(max = 1000, message = "{company.description.size}")
         String description,
 
-        @Size(max = 20, message = "Tax number cannot exceed 20 characters.")
+        @Size(max = 20, message = "{company.taxNumber.size}")
         String taxNumber,
 
-        @NotBlank(message = "Contact email cannot be blank.")
-        @Email(message = "Please enter a valid email address.")
-        @Size(max = 150, message = "Contact email cannot exceed 150 characters.")
+        @NotBlank(message = "{company.contactEmail.notBlank}")
+        @Email(message = "{company.contactEmail.invalid}")
+        @Size(max = 150, message = "{company.contactEmail.size}")
         String contactEmail,
 
-        @Size(max = 20, message = "Contact phone cannot exceed 20 characters.")
+        @Size(max = 20, message = "{company.contactPhone.size}")
         String contactPhone,
 
-        @Size(max = 500, message = "Address cannot exceed 500 characters.")
+        @Size(max = 500, message = "{company.address.size}")
         String address,
 
-        @Size(max = 100, message = "Industry cannot exceed 100 characters.")
+        @Size(max = 100, message = "{company.industry.size}")
         String industry
 
 ) {

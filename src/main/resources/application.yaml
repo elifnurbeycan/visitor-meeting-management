@@ -3,6 +3,15 @@ spring:
     name: meeting-room-management
   profiles:
     active: dev
+  messages:
+    basename: messages
+    use-code-as-default-message: true
+    encoding: UTF-8
+    fallback-to-system-locale: false
+
+  web:
+    locale: tr
+    locale-resolver: accept_header
 
 management:
   endpoints:

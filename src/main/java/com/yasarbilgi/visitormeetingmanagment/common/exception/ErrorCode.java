@@ -32,6 +32,21 @@ public enum ErrorCode {
             "company.inactive"
     ),
 
+    COMPANY_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "company.nameRequired"
+    ),
+
+    COMPANY_INVALID_SLUG(
+            HttpStatus.BAD_REQUEST,
+            "company.invalidSlug"
+    ),
+
+    COMPANY_EMAIL_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "company.emailRequired"
+    ),
+
     // Role
     ROLE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
@@ -46,6 +61,16 @@ public enum ErrorCode {
     ROLE_INACTIVE(
             HttpStatus.UNPROCESSABLE_ENTITY,
             "role.inactive"
+    ),
+
+    ROLE_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "role.nameRequired"
+    ),
+
+    ROLE_SYSTEM_ROLE_CANNOT_BE_DEACTIVATED(
+            HttpStatus.FORBIDDEN,
+            "role.systemRoleCannotBeDeactivated"
     ),
 
     // Permission
@@ -70,6 +95,11 @@ public enum ErrorCode {
             "jobTitle.alreadyExists"
     ),
 
+    JOB_TITLE_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "jobTitle.nameRequired"
+    ),
+
     // User
     USER_NOT_FOUND(
             HttpStatus.NOT_FOUND,
@@ -79,6 +109,16 @@ public enum ErrorCode {
     USER_ALREADY_EXISTS(
             HttpStatus.CONFLICT,
             "user.alreadyExists"
+    ),
+
+    USER_OWNER_ROLE_MODIFICATION_FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "user.ownerRoleModificationForbidden"
+    ),
+
+    USER_OWNER_CANNOT_BE_DEACTIVATED(
+            HttpStatus.FORBIDDEN,
+            "user.ownerCannotBeDeactivated"
     ),
 
     // Meeting Room
@@ -174,6 +214,43 @@ public enum ErrorCode {
     TENANT_ACCESS_DENIED(
             HttpStatus.FORBIDDEN,
             "tenant.accessDenied"
+    ),
+
+    // Authorization / Owner-Admin Rules
+    LAST_ADMIN_CANNOT_BE_MODIFIED(
+            HttpStatus.CONFLICT,
+            "authorization.lastAdminCannotBeModified"
+    ),
+
+    SELF_MODIFICATION_FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "authorization.selfModificationForbidden"
+    ),
+
+    ADMIN_CANNOT_MODIFY_ANOTHER_ADMIN(
+            HttpStatus.FORBIDDEN,
+            "authorization.adminCannotModifyAnotherAdmin"
+    ),
+
+    OWNER_TRANSFER_REQUIRED(
+            HttpStatus.CONFLICT,
+            "authorization.ownerTransferRequired"
+    ),
+
+    INSUFFICIENT_PERMISSION(
+            HttpStatus.FORBIDDEN,
+            "authorization.insufficientPermission"
+    ),
+
+    // Generic / Fallback
+    VALIDATION_FAILED(
+            HttpStatus.BAD_REQUEST,
+            "common.validationFailed"
+    ),
+
+    INTERNAL_SERVER_ERROR(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "common.internalServerError"
     );
 
     private final HttpStatus httpStatus;
