@@ -84,6 +84,16 @@ public enum ErrorCode {
             "permission.alreadyExists"
     ),
 
+    PERMISSION_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "permission.nameRequired"
+    ),
+
+    SYSTEM_PERMISSION_CANNOT_BE_DEACTIVATED(
+            HttpStatus.FORBIDDEN,
+            "permission.systemPermissionCannotBeDeactivated"
+    ),
+
     // Job Title
     JOB_TITLE_NOT_FOUND(
             HttpStatus.NOT_FOUND,

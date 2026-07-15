@@ -1,0 +1,109 @@
+package com.yasarbilgi.visitormeetingmanagment.permission.entity;
+
+public enum PermissionCode {
+
+    // ----- Company Management -----
+    COMPANY_VIEW,
+    COMPANY_UPDATE,
+    COMPANY_MANAGE_SETTINGS,
+
+    // ----- User Management -----
+    USER_CREATE,
+    USER_VIEW,
+    USER_VIEW_ALL,
+    USER_UPDATE,
+    USER_DELETE,
+    USER_DEACTIVATE,
+    USER_ACTIVATE,
+    USER_MANAGE,
+    USER_ASSIGN_ROLE,
+    USER_REVOKE_ROLE,
+    USER_ASSIGN_JOB_TITLE,
+    USER_GRANT_PERMISSION_OVERRIDE,
+    USER_REVOKE_PERMISSION_OVERRIDE,
+    USER_TRANSFER_OWNERSHIP,
+
+    // ----- Role Management -----
+    ROLE_CREATE,
+    ROLE_VIEW,
+    ROLE_UPDATE,
+    ROLE_DELETE,
+    ROLE_DEACTIVATE,
+    ROLE_ACTIVATE,
+    ROLE_MANAGE,
+    ROLE_ASSIGN_PERMISSION,
+    ROLE_REVOKE_PERMISSION,
+
+    // ----- Permission Management (read-only, global katalog) -----
+    PERMISSION_VIEW,
+
+    // ----- Job Title Management -----
+    JOB_TITLE_CREATE,
+    JOB_TITLE_VIEW,
+    JOB_TITLE_UPDATE,
+    JOB_TITLE_DELETE,
+    JOB_TITLE_DEACTIVATE,
+    JOB_TITLE_ACTIVATE,
+    JOB_TITLE_MANAGE,
+    JOB_TITLE_ASSIGN_DEFAULT_ROLE,
+    JOB_TITLE_REMOVE_DEFAULT_ROLE,
+
+    // ----- Room Management -----
+    ROOM_CREATE,
+    ROOM_VIEW,
+    ROOM_VIEW_AVAILABILITY,
+    ROOM_UPDATE,
+    ROOM_DELETE,
+    ROOM_DEACTIVATE,
+    ROOM_ACTIVATE,
+    ROOM_MANAGE_FEATURES,
+
+    // ----- Feature (oda özellikleri) Management -----
+    FEATURE_CREATE,
+    FEATURE_VIEW,
+    FEATURE_UPDATE,
+    FEATURE_DELETE,
+
+    // ----- Reservation Management -----
+    RESERVATION_CREATE,
+    RESERVATION_VIEW_OWN,
+    RESERVATION_VIEW_ALL,
+    RESERVATION_UPDATE_OWN,
+    RESERVATION_UPDATE_ALL,
+    RESERVATION_CANCEL_OWN,
+    RESERVATION_CANCEL_ALL,
+    RESERVATION_APPROVE,
+    RESERVATION_REJECT,
+    RESERVATION_VIEW_DETAILS,
+    RESERVATION_FILTER_BY_DATE,
+    RESERVATION_FILTER_BY_ROOM,
+
+    // ----- Visitor Management (ileride aktif olacak modül) -----
+    VISITOR_CREATE,
+    VISITOR_VIEW,
+    VISITOR_CHECK_IN,
+    VISITOR_CHECK_OUT,
+    VISITOR_ASSIGN_CARD,
+    VISITOR_VIEW_HISTORY,
+    VISITOR_CANCEL,
+
+    // ----- Dashboard -----
+    DASHBOARD_VIEW,
+
+    // ----- Reports -----
+    REPORT_VIEW_DAILY_VISITORS,
+    REPORT_VIEW_ACTIVE_VISITORS,
+    REPORT_VIEW_UNCHECKED_OUT_VISITORS,
+    REPORT_VIEW_ROOM_USAGE,
+    REPORT_VIEW_RESERVATION_STATS,
+    REPORT_VIEW_CANCELLATION_STATS,
+    REPORT_EXPORT_EXCEL,
+
+    // ----- Audit Log -----
+    AUDIT_LOG_VIEW,
+
+    // ----- Notification -----
+    NOTIFICATION_VIEW,
+    NOTIFICATION_MANAGE_SETTINGS
+
+}
