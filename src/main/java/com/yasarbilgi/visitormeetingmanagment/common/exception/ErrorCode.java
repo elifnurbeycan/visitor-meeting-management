@@ -131,6 +131,22 @@ public enum ErrorCode {
             "user.ownerCannotBeDeactivated"
     ),
 
+    // Feature
+    FEATURE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "feature.notFound"
+    ),
+
+    FEATURE_ALREADY_EXISTS(
+            HttpStatus.CONFLICT,
+            "feature.alreadyExists"
+    ),
+
+    FEATURE_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "feature.nameRequired"
+    ),
+
     // Meeting Room
     MEETING_ROOM_NOT_FOUND(
             HttpStatus.NOT_FOUND,
