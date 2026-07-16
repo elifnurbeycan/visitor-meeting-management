@@ -3,6 +3,7 @@ package com.yasarbilgi.visitormeetingmanagment.room.entity;
 import com.yasarbilgi.visitormeetingmanagment.common.base.TenantBaseEntity;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.feature.entity.Feature;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

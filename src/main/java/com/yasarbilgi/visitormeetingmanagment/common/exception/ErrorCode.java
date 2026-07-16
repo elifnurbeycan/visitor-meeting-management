@@ -168,6 +168,11 @@ public enum ErrorCode {
             "meetingRoom.invalidCapacity"
     ),
 
+    MEETING_ROOM_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "meetingRoom.nameRequired"
+    ),
+
     // Reservation
     RESERVATION_NOT_FOUND(
             HttpStatus.NOT_FOUND,
@@ -268,27 +273,6 @@ public enum ErrorCode {
             "authorization.insufficientPermission"
     ),
 
-
-    MEETING_ROOM_NAME_REQUIRED(
-            HttpStatus.BAD_REQUEST,
-            "meetingRoom.nameRequired"
-    ),
-
-    FEATURE_NOT_FOUND(
-            HttpStatus.NOT_FOUND,
-            "feature.notFound"
-    ),
-
-    FEATURE_ALREADY_EXISTS(
-            HttpStatus.CONFLICT,
-            "feature.alreadyExists"
-    ),
-
-    FEATURE_NAME_REQUIRED(
-            HttpStatus.BAD_REQUEST,
-            "feature.nameRequired"
-    ),
-
     // Generic / Fallback
     VALIDATION_FAILED(
             HttpStatus.BAD_REQUEST,
@@ -299,9 +283,6 @@ public enum ErrorCode {
             HttpStatus.INTERNAL_SERVER_ERROR,
             "common.internalServerError"
     );
-
-
-
 
     private final HttpStatus httpStatus;
     private final String messageKey;

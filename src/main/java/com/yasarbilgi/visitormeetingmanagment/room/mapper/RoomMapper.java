@@ -1,7 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.room.mapper;
 
+import com.yasarbilgi.visitormeetingmanagment.feature.entity.Feature;
 import com.yasarbilgi.visitormeetingmanagment.room.dto.response.RoomResponseDto;
-import com.yasarbilgi.visitormeetingmanagment.room.entity.Feature;
 import com.yasarbilgi.visitormeetingmanagment.room.entity.Room;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mapper;
