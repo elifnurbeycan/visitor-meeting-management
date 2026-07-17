@@ -31,105 +31,52 @@ import java.time.LocalDateTime;
 @Table(
         name = "reservations",
         indexes = {
-                @Index(
-                        name = "idx_reservations_company_id",
-                        columnList = "company_id"
-                ),
-                @Index(
-                        name = "idx_reservations_room_id",
-                        columnList = "room_id"
-                ),
-                @Index(
-                        name = "idx_reservations_organizer_id",
-                        columnList = "organizer_id"
-                ),
-                @Index(
-                        name = "idx_reservations_status",
-                        columnList = "reservation_status"
-                ),
-                @Index(
-                        name = "idx_reservations_room_time",
-                        columnList = "room_id, reservation_start_time, reservation_end_time"
-                ),
-                @Index(
-                        name = "idx_reservations_active",
-                        columnList = "active"
-                )
+                @Index(name = "idx_reservations_company_id", columnList = "company_id"),
+                @Index(name = "idx_reservations_room_id", columnList = "room_id"),
+                @Index(name = "idx_reservations_organizer_id", columnList = "organizer_id"),
+                @Index(name = "idx_reservations_status", columnList = "status"),
+                @Index(name = "idx_reservations_room_time", columnList = "room_id, start_time, end_time"),
+                @Index(name = "idx_reservations_active", columnList = "active")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Reservation extends TenantBaseEntity {
 
-    @Column(
-            name = "reservation_title",
-            nullable = false,
-            length = 200
-    )
+    @Column(name = "title", nullable = false, length = 200)
     private String title;
 
-    @Column(
-            name = "reservation_description",
-            length = 1000
-    )
+    @Column(name = "description", length = 1000)
     private String description;
 
-    @Column(
-            name = "reservation_start_time",
-            nullable = false
-    )
+    @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
-    @Column(
-            name = "reservation_end_time",
-            nullable = false
-    )
+    @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
-    @Column(
-            name = "reservation_participant_count",
-            nullable = false
-    )
+    @Column(name = "participant_count", nullable = false)
     private Integer participantCount;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(
-            name = "reservation_status",
-            nullable = false,
-            length = 30
-    )
+    @Column(name = "status", nullable = false, length = 30)
     private ReservationStatus status = ReservationStatus.ACTIVE;
 
-    @Column(
-            name = "reservation_cancel_reason",
-            length = 500
-    )
+    @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
 
-    @Column(name = "reservation_cancelled_at")
+    @Column(name = "cancelled_at")
     private Instant cancelledAt;
 
-    @Column(name = "reservation_completed_at")
+    @Column(name = "completed_at")
     private Instant completedAt;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "room_id",
-            nullable = false,
-            foreignKey = @ForeignKey(
-                    name = "fk_reservations_room"
-            )
-    )
+    @JoinColumn(name = "room_id", nullable = false, foreignKey = @ForeignKey(name = "fk_reservations_room"))
     private Room room;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "organizer_id",
-            nullable = false,
-            foreignKey = @ForeignKey(
-                    name = "fk_reservations_organizer"
-            )
-    )
+    @JoinColumn(name = "organizer_id", nullable = false, foreignKey = @ForeignKey(name = "fk_reservations_organizer"))
     private User organizer;
 
     public void updateDetails(
@@ -144,6 +91,7 @@ public class Reservation extends TenantBaseEntity {
         validateTitle(newTitle);
         validateTimeRange(newStartTime, newEndTime);
         validateParticipantCount(newParticipantCount);
+        validateCapacity(newParticipantCount, newRoom);
 
         this.title = newTitle;
         this.description = newDescription;
@@ -176,47 +124,35 @@ public class Reservation extends TenantBaseEntity {
 
     private void validateEditableStatus() {
         if (this.status != ReservationStatus.ACTIVE) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_RESERVATION_STATUS
-            );
+            throw new BusinessException(ErrorCode.INVALID_RESERVATION_STATUS);
         }
     }
 
     private static void validateTitle(String title) {
         if (title == null || title.isBlank()) {
-            throw new BusinessException(
-                    ErrorCode.BUSINESS_RULE_VIOLATION
-            );
+            throw new BusinessException(ErrorCode.RESERVATION_TITLE_REQUIRED);
         }
     }
 
-    private static void validateTimeRange(
-            LocalDateTime startTime,
-            LocalDateTime endTime
-    ) {
-        if (startTime == null
-                || endTime == null
-                || !startTime.isBefore(endTime)) {
-
-            throw new BusinessException(
-                    ErrorCode.INVALID_RESERVATION_TIME
-            );
+    private static void validateTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime == null || endTime == null || !startTime.isBefore(endTime)) {
+            throw new BusinessException(ErrorCode.INVALID_RESERVATION_TIME);
         }
 
         if (startTime.isBefore(LocalDateTime.now())) {
-            throw new BusinessException(
-                    ErrorCode.RESERVATION_IN_PAST
-            );
+            throw new BusinessException(ErrorCode.RESERVATION_IN_PAST);
         }
     }
 
-    private static void validateParticipantCount(
-            Integer participantCount
-    ) {
+    private static void validateParticipantCount(Integer participantCount) {
         if (participantCount == null || participantCount < 1) {
-            throw new BusinessException(
-                    ErrorCode.BUSINESS_RULE_VIOLATION
-            );
+            throw new BusinessException(ErrorCode.INVALID_PARTICIPANT_COUNT);
+        }
+    }
+
+    private static void validateCapacity(Integer participantCount, Room newRoom) {
+        if (newRoom != null && participantCount != null && participantCount > newRoom.getCapacity()) {
+            throw new BusinessException(ErrorCode.RESERVATION_EXCEEDS_ROOM_CAPACITY);
         }
     }
 }

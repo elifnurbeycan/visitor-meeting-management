@@ -273,16 +273,43 @@ public enum ErrorCode {
             "authorization.insufficientPermission"
     ),
 
+    DUPLICATE_PERMISSION_OVERRIDE(
+            HttpStatus.CONFLICT,
+            "userPermissionOverride.duplicate"
+    ),
+
+    PERMISSION_OVERRIDE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "userPermissionOverride.notFound"
+    ),
+
     // Generic / Fallback
     VALIDATION_FAILED(
             HttpStatus.BAD_REQUEST,
             "common.validationFailed"
     ),
 
+    RESERVATION_TITLE_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "reservation.titleRequired"
+    ),
+
+    INVALID_PARTICIPANT_COUNT(
+            HttpStatus.BAD_REQUEST,
+            "reservation.invalidParticipantCount"
+    ),
+
+    RESERVATION_EXCEEDS_ROOM_CAPACITY(
+            HttpStatus.BAD_REQUEST,
+            "reservation.exceedsRoomCapacity"
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "common.internalServerError"
     );
+
+
 
     private final HttpStatus httpStatus;
     private final String messageKey;
