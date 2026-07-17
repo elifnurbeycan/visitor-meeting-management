@@ -36,6 +36,7 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_reservations_organizer_id", columnList = "organizer_id"),
                 @Index(name = "idx_reservations_status", columnList = "status"),
                 @Index(name = "idx_reservations_room_time", columnList = "room_id, start_time, end_time"),
+                @Index(name = "idx_reservations_approval_deadline", columnList = "approval_deadline"),
                 @Index(name = "idx_reservations_active", columnList = "active")
         }
 )
@@ -60,7 +61,13 @@ public class Reservation extends TenantBaseEntity {
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    private ReservationStatus status = ReservationStatus.ACTIVE;
+    private ReservationStatus status = ReservationStatus.PENDING_APPROVAL;
+
+    @Column(name = "approval_deadline")
+    private Instant approvalDeadline;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
 
     @Column(name = "cancel_reason", length = 500)
     private String cancelReason;
@@ -101,6 +108,32 @@ public class Reservation extends TenantBaseEntity {
         this.room = newRoom;
     }
 
+    public void approve() {
+        validatePendingStatus();
+        this.status = ReservationStatus.ACTIVE;
+        this.approvalDeadline = null;
+    }
+
+    public void reject(String reason) {
+        validatePendingStatus();
+        this.status = ReservationStatus.REJECTED;
+        this.rejectionReason = reason;
+        this.approvalDeadline = null;
+    }
+
+    public void autoRejectDueToConflict() {
+        validatePendingStatus();
+        this.status = ReservationStatus.REJECTED;
+        this.rejectionReason = null; // servis katmanında sabit bir sistem mesajı ile doldurulacak
+        this.approvalDeadline = null;
+    }
+
+    public void expire() {
+        validatePendingStatus();
+        this.status = ReservationStatus.EXPIRED;
+        this.approvalDeadline = null;
+    }
+
     public void cancel(String reason) {
         validateEditableStatus();
 
@@ -122,9 +155,21 @@ public class Reservation extends TenantBaseEntity {
                 && this.organizer.equals(user);
     }
 
+    public boolean isApprovalExpired() {
+        return this.status == ReservationStatus.PENDING_APPROVAL
+                && this.approvalDeadline != null
+                && Instant.now().isAfter(this.approvalDeadline);
+    }
+
     private void validateEditableStatus() {
         if (this.status != ReservationStatus.ACTIVE) {
             throw new BusinessException(ErrorCode.INVALID_RESERVATION_STATUS);
+        }
+    }
+
+    private void validatePendingStatus() {
+        if (this.status != ReservationStatus.PENDING_APPROVAL) {
+            throw new BusinessException(ErrorCode.RESERVATION_NOT_PENDING_APPROVAL);
         }
     }
 
