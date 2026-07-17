@@ -304,6 +304,21 @@ public enum ErrorCode {
             "reservation.exceedsRoomCapacity"
     ),
 
+    RESERVATION_NOT_PENDING_APPROVAL(
+            HttpStatus.CONFLICT,
+            "reservation.notPendingApproval"
+    ),
+
+    RESERVATION_ALREADY_MODIFIED(
+            HttpStatus.CONFLICT,
+            "reservation.alreadyModified"
+    ),
+
+    RESERVATION_APPROVAL_EXPIRED(
+            HttpStatus.CONFLICT,
+            "reservation.approvalExpired"
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "common.internalServerError"
