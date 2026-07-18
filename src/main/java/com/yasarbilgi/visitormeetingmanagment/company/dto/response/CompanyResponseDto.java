@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.company.dto.response;
 
+import com.yasarbilgi.visitormeetingmanagment.platform.enums.CompanyStatus;
 import lombok.Builder;
 
 import java.time.Instant;
@@ -24,6 +25,10 @@ public record CompanyResponseDto(
         String address,
 
         String industry,
+
+        CompanyStatus status,
+
+        String rejectionReason,
 
         boolean active,
 

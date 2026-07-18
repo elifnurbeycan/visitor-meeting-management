@@ -16,9 +16,11 @@ public interface CompanyMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "deactivatedAt", ignore = true)
+    @Mapping(target = "status", ignore = true)
     @Mapping(target = "version", ignore = true)
     @Mapping(target = "active", ignore = true)
-    @Mapping(target = "deactivatedAt", ignore = true)
+    @Mapping(target = "rejectionReason", ignore = true)
     Company toEntity(CompanyRequestDto dto);
 
 }

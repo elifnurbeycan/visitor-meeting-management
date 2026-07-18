@@ -3,12 +3,16 @@ package com.yasarbilgi.visitormeetingmanagment.company.entity;
 import com.yasarbilgi.visitormeetingmanagment.common.base.BaseEntity;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.platform.enums.CompanyStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -23,7 +27,8 @@ import lombok.experimental.SuperBuilder;
                 @UniqueConstraint(name = "uk_companies_tax_number", columnNames = "tax_number")
         },
         indexes = {
-                @Index(name = "idx_companies_active", columnList = "active")
+                @Index(name = "idx_companies_active", columnList = "active"),
+                @Index(name = "idx_companies_status", columnList = "status")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -54,6 +59,30 @@ public class Company extends BaseEntity {
 
     @Column(name = "industry", length = 100)
     private String industry;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 30)
+    private CompanyStatus status = CompanyStatus.PENDING_APPROVAL;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    public void approve() {
+        validatePendingStatus();
+        this.status = CompanyStatus.ACTIVE;
+        this.rejectionReason = null;
+    }
+
+    public void reject(String reason) {
+        validatePendingStatus();
+        this.status = CompanyStatus.REJECTED;
+        this.rejectionReason = reason;
+    }
+
+    public boolean isApproved() {
+        return this.status == CompanyStatus.ACTIVE;
+    }
 
     public void rename(String newName) {
         if (newName == null || newName.isBlank()) {
@@ -86,6 +115,12 @@ public class Company extends BaseEntity {
 
     public void updateIndustry(String industry) {
         this.industry = industry;
+    }
+
+    private void validatePendingStatus() {
+        if (this.status != CompanyStatus.PENDING_APPROVAL) {
+            throw new BusinessException(ErrorCode.COMPANY_NOT_PENDING_APPROVAL);
+        }
     }
 
     private static void validateSlug(String candidateSlug) {
