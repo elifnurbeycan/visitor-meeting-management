@@ -1,6 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.permission.dto.response;
 
-import com.yasarbilgi.visitormeetingmanagment.permission.entity.PermissionCategory;
+import com.yasarbilgi.visitormeetingmanagment.permission.enums.PermissionCategory;
 import lombok.Builder;
 
 @Builder

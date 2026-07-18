@@ -1,4 +1,4 @@
-package com.yasarbilgi.visitormeetingmanagment.permission.entity;
+package com.yasarbilgi.visitormeetingmanagment.permission.enums;
 
 public enum PermissionCode {
 

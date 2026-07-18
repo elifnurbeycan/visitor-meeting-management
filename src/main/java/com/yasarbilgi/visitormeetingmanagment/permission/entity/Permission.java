@@ -3,6 +3,8 @@ package com.yasarbilgi.visitormeetingmanagment.permission.entity;
 import com.yasarbilgi.visitormeetingmanagment.common.base.BaseEntity;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.permission.enums.PermissionCategory;
+import com.yasarbilgi.visitormeetingmanagment.permission.enums.PermissionCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
