@@ -47,6 +47,11 @@ public enum ErrorCode {
             "company.emailRequired"
     ),
 
+    COMPANY_NOT_PENDING_APPROVAL(
+            HttpStatus.CONFLICT,
+            "company.notPendingApproval"
+    ),
+
     // Role
     ROLE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
@@ -71,6 +76,16 @@ public enum ErrorCode {
     ROLE_SYSTEM_ROLE_CANNOT_BE_DEACTIVATED(
             HttpStatus.FORBIDDEN,
             "role.systemRoleCannotBeDeactivated"
+    ),
+
+    ROLE_TEMPLATE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "roleTemplate.notFound"
+    ),
+
+    ROLE_TEMPLATE_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "roleTemplate.nameRequired"
     ),
 
     // Permission
@@ -297,6 +312,26 @@ public enum ErrorCode {
     INVALID_PARTICIPANT_COUNT(
             HttpStatus.BAD_REQUEST,
             "reservation.invalidParticipantCount"
+    ),
+
+    SUPER_ADMIN_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "superAdmin.notFound"
+    ),
+
+    SUPER_ADMIN_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "superAdmin.nameRequired"
+    ),
+
+    SUPER_ADMIN_PASSWORD_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "superAdmin.passwordRequired"
+    ),
+
+    SUPER_ADMIN_NOT_ACTIVE(
+            HttpStatus.FORBIDDEN,
+            "superAdmin.notActive"
     ),
 
     RESERVATION_EXCEEDS_ROOM_CAPACITY(
