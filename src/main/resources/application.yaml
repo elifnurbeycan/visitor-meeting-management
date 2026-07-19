@@ -13,6 +13,13 @@ spring:
     locale: tr
     locale-resolver: accept_header
 
+server:
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
 management:
   endpoints:
     web:
