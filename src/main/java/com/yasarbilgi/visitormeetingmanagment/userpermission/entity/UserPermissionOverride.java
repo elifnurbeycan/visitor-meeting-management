@@ -1,6 +1,8 @@
 package com.yasarbilgi.visitormeetingmanagment.userpermission.entity;
 
 import com.yasarbilgi.visitormeetingmanagment.common.base.TenantBaseEntity;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
+import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.permission.entity.Permission;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import jakarta.persistence.*;
@@ -53,5 +55,15 @@ public class UserPermissionOverride extends TenantBaseEntity {
      */
     public boolean isRevoke() {
         return this.type == OverrideType.REVOKE;
+    }
+
+    /**
+     * Override tipini günceller.
+     */
+    public void updateType(OverrideType type) {
+        if (type == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED);
+        }
+        this.type = type;
     }
 }
