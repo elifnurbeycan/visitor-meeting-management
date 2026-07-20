@@ -52,6 +52,16 @@ public enum ErrorCode {
             "company.notPendingApproval"
     ),
 
+    COMPANY_ALREADY_HAS_OWNER(
+            HttpStatus.CONFLICT,
+            "company.alreadyHasOwner"
+    ),
+
+    USER_NOT_OWNER(
+            HttpStatus.FORBIDDEN,
+            "user.notOwner"
+    ),
+
     // Role
     ROLE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
@@ -144,6 +154,26 @@ public enum ErrorCode {
     USER_OWNER_CANNOT_BE_DEACTIVATED(
             HttpStatus.FORBIDDEN,
             "user.ownerCannotBeDeactivated"
+    ),
+
+    USER_FIRST_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "user.firstNameRequired"
+    ),
+
+    USER_LAST_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "user.lastNameRequired"
+    ),
+
+    USER_EMAIL_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "user.emailRequired"
+    ),
+
+    USER_PASSWORD_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "user.passwordRequired"
     ),
 
     // Feature
