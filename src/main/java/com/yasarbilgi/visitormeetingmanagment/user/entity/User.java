@@ -77,6 +77,31 @@ public class User extends TenantBaseEntity {
         return this.firstName + " " + this.lastName;
     }
 
+    public void updateName(String firstName, String lastName) {
+        if (firstName == null || firstName.isBlank()) {
+            throw new BusinessException(ErrorCode.USER_FIRST_NAME_REQUIRED);
+        }
+        if (lastName == null || lastName.isBlank()) {
+            throw new BusinessException(ErrorCode.USER_LAST_NAME_REQUIRED);
+        }
+        this.firstName = firstName;
+        this.lastName = lastName;
+    }
+
+    public void changeEmail(String newEmail) {
+        if (newEmail == null || newEmail.isBlank()) {
+            throw new BusinessException(ErrorCode.USER_EMAIL_REQUIRED);
+        }
+        this.email = newEmail;
+    }
+
+    public void changePasswordHash(String newPasswordHash) {
+        if (newPasswordHash == null || newPasswordHash.isBlank()) {
+            throw new BusinessException(ErrorCode.USER_PASSWORD_REQUIRED);
+        }
+        this.passwordHash = newPasswordHash;
+    }
+
     public void assignRole(Role role) {
         this.roles.add(role);
     }
