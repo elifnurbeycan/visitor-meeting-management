@@ -13,10 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * UserPermissionOverride kaynağı için REST endpoint'leri.
- * URL şeması: /api/v1/user-permission-overrides
- */
+
 @RestController
 @RequestMapping("/api/v1/user-permission-overrides")
 @RequiredArgsConstructor
@@ -24,9 +21,7 @@ public class UserPermissionOverrideController {
 
     private final UserPermissionOverrideService overrideService;
 
-    /**
-     * Yeni bir kullanıcı yetki override kaydı oluşturur. Başarılı olursa 201 Created döner.
-     */
+
     @PostMapping
     public ResponseEntity<ApiResponse<UserPermissionOverrideResponseDto>> create(
             @Valid @RequestBody UserPermissionOverrideRequestDto dto
@@ -37,9 +32,7 @@ public class UserPermissionOverrideController {
                 .body(ApiResponse.success("User permission override created successfully", created));
     }
 
-    /**
-     * Var olan bir kullanıcı yetki override kaydını günceller.
-     */
+
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UserPermissionOverrideResponseDto>> update(
             @PathVariable Long id,
