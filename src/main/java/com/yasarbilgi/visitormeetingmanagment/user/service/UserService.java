@@ -19,6 +19,8 @@ public interface UserService {
 
     UserResponseDto getOwner(Long companyId);
 
+    UserResponseDto forceTransferOwnership(Long companyId, Long newOwnerId);
+
     // ----- Listeleme -----
 
     Page<UserResponseDto> getAll(Long companyId, Pageable pageable);
@@ -36,6 +38,7 @@ public interface UserService {
     void deactivate(Long companyId, Long userId);
 
     void activate(Long companyId, Long userId);
+
 
     // ----- Rol yönetimi -----
 

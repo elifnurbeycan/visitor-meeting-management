@@ -57,6 +57,11 @@ public enum ErrorCode {
             "company.alreadyHasOwner"
     ),
 
+    COMPANY_CANNOT_HARD_DELETE_ACTIVE(
+            HttpStatus.CONFLICT,
+            "company.cannotHardDeleteActive"
+    ),
+
     USER_NOT_OWNER(
             HttpStatus.FORBIDDEN,
             "user.notOwner"
@@ -382,6 +387,11 @@ public enum ErrorCode {
     RESERVATION_APPROVAL_EXPIRED(
             HttpStatus.CONFLICT,
             "reservation.approvalExpired"
+    ),
+
+    LAST_SUPER_ADMIN_CANNOT_BE_DEACTIVATED(
+            HttpStatus.CONFLICT,
+            "superAdmin.lastAdminCannotBeDeactivated"
     ),
 
     INTERNAL_SERVER_ERROR(

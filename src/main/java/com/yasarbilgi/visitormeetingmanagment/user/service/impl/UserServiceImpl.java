@@ -134,6 +134,30 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponseDto(owner);
     }
 
+    /**
+     * SuperAdmin tarafından tetiklenen, zorla owner değişikliği. Mevcut
+     * owner'ın rızası aranmaz. Şirkette bir owner varsa önce demote edilir,
+     * yeni kullanıcı owner yapılır. Şirkette hiç owner yoksa direkt atanır.
+     */
+    @Override
+    @Transactional
+    public UserResponseDto forceTransferOwnership(Long companyId, Long newOwnerId) {
+        log.warn("FORCE ownership transfer to user: {} in company: {} (triggered by SuperAdmin)",
+                newOwnerId, companyId);
+
+        userRepository.findByCompanyIdAndOwnerTrue(companyId)
+                .ifPresent(currentOwner -> {
+                    currentOwner.demoteFromOwner();
+                    log.warn("Previous owner {} demoted", currentOwner.getId());
+                });
+
+        User newOwner = findUserOrThrow(companyId, newOwnerId);
+        newOwner.promoteToOwner();
+
+        log.warn("User {} force-promoted to owner in company {}", newOwnerId, companyId);
+        return userMapper.toResponseDto(newOwner);
+    }
+
     @Override
     public Page<UserResponseDto> getAll(Long companyId, Pageable pageable) {
         log.debug("Fetching all users for company: {}, page: {}", companyId, pageable);
