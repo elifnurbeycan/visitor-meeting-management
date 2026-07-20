@@ -33,6 +33,8 @@ public interface CompanyService {
 
     CompanyResponseDto reject(Long id, String reason);
 
+    void hardDelete(Long id);
+
     void deactivate(Long id);
 
     void activate(Long id);

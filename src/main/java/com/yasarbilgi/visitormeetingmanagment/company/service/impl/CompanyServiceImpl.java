@@ -201,6 +201,35 @@ public class CompanyServiceImpl implements CompanyService {
     }
 
     /**
+     * Bir şirketi ve ona bağlı TÜM verileri (kullanıcılar, roller, odalar,
+     * rezervasyonlar vb.) veritabanından KALICI olarak siler. Bu işlem
+     * geri alınamaz. Foreign key'ler ON DELETE CASCADE ile tanımlı olduğu
+     * için, tek bir DELETE ile tüm bağlı kayıtlar otomatik silinir.
+     *
+     * Güvenlik önlemi: sadece PENDING_APPROVAL veya REJECTED durumundaki
+     * şirketler hard-delete edilebilir. Zaten ACTIVE (onaylanmış, çalışan)
+     * bir şirketi kalıcı silmek istiyorsanız, önce reddedilmiş/soft-delete
+     * edilmiş olmalı — bu, "yanlışlıkla aktif bir şirketi tamamen silme"
+     * riskine karşı bilinçli bir kısıtlamadır.
+     */
+    @Override
+    @Transactional
+    public void hardDelete(Long id) {
+        log.warn("HARD DELETE requested for company with id: {}", id);
+
+        Company company = findCompanyOrThrow(id);
+
+        if (company.getStatus() == CompanyStatus.ACTIVE) {
+            log.warn("Hard delete rejected: company {} is still ACTIVE", id);
+            throw new BusinessException(ErrorCode.COMPANY_CANNOT_HARD_DELETE_ACTIVE);
+        }
+
+        companyRepository.deleteById(id);
+
+        log.warn("Company with id: {} has been permanently deleted", id);
+    }
+
+    /**
      * Bir şirketi pasif hale getirir (soft-delete).
      * Kayıt veritabanından silinmez, sadece active=false yapılır.
      */
