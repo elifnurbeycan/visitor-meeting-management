@@ -218,6 +218,7 @@ public enum ErrorCode {
             "meetingRoom.invalidCapacity"
     ),
 
+
     MEETING_ROOM_NAME_REQUIRED(
             HttpStatus.BAD_REQUEST,
             "meetingRoom.nameRequired"
@@ -333,6 +334,21 @@ public enum ErrorCode {
             "userPermissionOverride.notFound"
     ),
 
+    INVALID_CREDENTIALS(
+            HttpStatus.UNAUTHORIZED,
+            "auth.invalidCredentials"
+    ),
+
+    USER_INACTIVE(
+            HttpStatus.FORBIDDEN,
+            "user.inactive"
+    ),
+
+    INVALID_REFRESH_TOKEN(
+            HttpStatus.UNAUTHORIZED,
+            "auth.invalidRefreshToken"
+    ),
+
     // Generic / Fallback
     VALIDATION_FAILED(
             HttpStatus.BAD_REQUEST,
@@ -393,6 +409,8 @@ public enum ErrorCode {
             HttpStatus.CONFLICT,
             "superAdmin.lastAdminCannotBeDeactivated"
     ),
+
+
 
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,

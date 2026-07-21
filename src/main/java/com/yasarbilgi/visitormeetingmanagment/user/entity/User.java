@@ -61,6 +61,10 @@ public class User extends TenantBaseEntity {
     private boolean owner = false;
 
     @Builder.Default
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = true;
+
+    @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "user_roles",
@@ -134,5 +138,13 @@ public class User extends TenantBaseEntity {
             throw new BusinessException(ErrorCode.USER_OWNER_CANNOT_BE_DEACTIVATED);
         }
         this.deactivate();
+    }
+
+    public void clearMustChangePasswordFlag() {
+        this.mustChangePassword = false;
+    }
+
+    public void forcePasswordChangeOnNextLogin() {
+        this.mustChangePassword = true;
     }
 }

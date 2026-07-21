@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -22,6 +23,8 @@ public interface UserPermissionOverrideRepository extends JpaRepository<UserPerm
     Page<UserPermissionOverride> findAllByUserId(Long userId, Pageable pageable);
 
     Page<UserPermissionOverride> findAllByUserIdAndActive(Long userId, boolean active, Pageable pageable);
+
+    List<UserPermissionOverride> findAllByUserIdAndActive(Long userId, boolean active);
 
     @Query("""
             SELECT upo FROM UserPermissionOverride upo
