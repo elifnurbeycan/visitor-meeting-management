@@ -10,10 +10,13 @@ import com.yasarbilgi.visitormeetingmanagment.company.mapper.CompanyMapper;
 import com.yasarbilgi.visitormeetingmanagment.company.repository.CompanyRepository;
 import com.yasarbilgi.visitormeetingmanagment.company.service.CompanyService;
 import com.yasarbilgi.visitormeetingmanagment.platform.enums.CompanyStatus;
+import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
+import com.yasarbilgi.visitormeetingmanagment.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,29 +28,39 @@ import org.springframework.transaction.annotation.Transactional;
 public class CompanyServiceImpl implements CompanyService {
 
     private final CompanyRepository companyRepository;
+    private final UserRepository userRepository;
     private final CompanyMapper companyMapper;
+    private final PasswordEncoder passwordEncoder;
 
-    /**
-     * Yeni bir şirket kaydı oluşturur.
-     * Slug ve vergi numarasının benzersizliğini DB constraint'ine düşmeden
-     * önce kontrol eder, anlamlı bir hata mesajı döner.
-     * Oluşan şirket, entity varsayılanı gereği PENDING_APPROVAL durumunda başlar.
-     */
     @Override
     @Transactional
     public CompanyResponseDto create(CompanyRequestDto dto) {
-        log.info("Creating company with slug: {}", dto.slug());
+        log.info("Creating company with slug: {} and owner email: {}", dto.slug(), dto.ownerEmail());
 
         validateSlugNotTaken(dto.slug());
         validateTaxNumberNotTaken(dto.taxNumber());
+        validateOwnerUsernameNotTaken(dto.ownerUsername());
 
         Company company = companyMapper.toEntity(dto);
-        Company saved = companyRepository.save(company);
+        Company savedCompany = companyRepository.save(company);
 
-        log.info("Company created successfully with id: {}", saved.getId());
-        return companyMapper.toResponseDto(saved);
+        User owner = User.builder()
+                .company(savedCompany)
+                .firstName(dto.ownerFirstName())
+                .lastName(dto.ownerLastName())
+                .email(dto.ownerEmail())
+                .username(dto.ownerUsername())
+                .passwordHash(passwordEncoder.encode(dto.ownerPassword()))
+                .owner(true)
+                .mustChangePassword(true)
+                .build();
+
+        userRepository.save(owner);
+
+        log.info("Company created successfully with id: {}, owner user id: {}",
+                savedCompany.getId(), owner.getId());
+        return companyMapper.toResponseDto(savedCompany);
     }
-
     /**
      * Var olan bir şirketin bilgilerini günceller.
      * Slug veya vergi numarası gerçekten değiştiyse tekrar benzersizlik kontrolü yapar;
@@ -284,6 +297,13 @@ public class CompanyServiceImpl implements CompanyService {
     private void validateTaxNumberNotTaken(String taxNumber) {
         if (taxNumber != null && companyRepository.existsByTaxNumber(taxNumber)) {
             throw new BusinessException(ErrorCode.COMPANY_ALREADY_EXISTS);
+        }
+    }
+
+
+    private void validateOwnerUsernameNotTaken(String username) {
+        if (userRepository.existsByUsername(username)) {
+            throw new BusinessException(ErrorCode.USER_USERNAME_ALREADY_EXISTS);
         }
     }
 }

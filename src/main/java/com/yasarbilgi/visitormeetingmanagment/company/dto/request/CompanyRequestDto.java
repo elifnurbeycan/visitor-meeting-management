@@ -39,7 +39,30 @@ public record CompanyRequestDto(
         String address,
 
         @Size(max = 100, message = "{company.industry.size}")
-        String industry
+        String industry,
+
+        // ----- Owner (ilk kullanıcı) bilgileri -----
+
+        @NotBlank(message = "{user.firstName.notBlank}")
+        @Size(max = 100, message = "{user.firstName.size}")
+        String ownerFirstName,
+
+        @NotBlank(message = "{user.lastName.notBlank}")
+        @Size(max = 100, message = "{user.lastName.size}")
+        String ownerLastName,
+
+        @NotBlank(message = "{user.email.notBlank}")
+        @Email(message = "{user.email.invalid}")
+        @Size(max = 150, message = "{user.email.size}")
+        String ownerEmail,
+
+        @NotBlank(message = "{user.usernameRequired}")
+        @Size(max = 50, message = "{user.username.size}")
+        String ownerUsername,
+
+        @NotBlank(message = "{user.password.notBlank}")
+        @Size(min = 8, max = 100, message = "{user.password.size}")
+        String ownerPassword
 
 ) {
 }
