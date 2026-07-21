@@ -4,7 +4,7 @@ import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.LoginResponseDto
 
 public interface AuthService {
 
-    LoginResponseDto login(String companySlug, String email, String password);
+    LoginResponseDto login(String companySlug, String identifier, String password);
 
     LoginResponseDto loginSuperAdmin(String email, String password);
 

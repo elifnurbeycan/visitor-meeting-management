@@ -25,6 +25,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Page<User> findAllByCompanyIdAndJobTitleId(Long companyId, Long jobTitleId, Pageable pageable);
 
+    Page<User> findAllByCompanyIdAndDepartmentId(Long companyId, Long departmentId, Pageable pageable);
+
+    boolean existsByUsername(String username);
+
+    Optional<User> findByUsername(String username);
+
     @Query("""
             SELECT u FROM User u
             WHERE u.company.id = :companyId

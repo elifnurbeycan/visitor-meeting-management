@@ -24,11 +24,17 @@ public record UserRequestDto(
         @Size(max = 150, message = "{user.email.size}")
         String email,
 
+        @NotBlank(message = "{user.usernameRequired}")
+        @Size(max = 50, message = "{user.username.size}")
+        String username,
+
         @NotBlank(message = "{user.password.notBlank}")
         @Size(min = 8, max = 100, message = "{user.password.size}")
         String password,
 
         Long jobTitleId,
+
+        Long departmentId,
 
         @NotEmpty(message = "{user.roleIds.notEmpty}")
         Set<Long> roleIds

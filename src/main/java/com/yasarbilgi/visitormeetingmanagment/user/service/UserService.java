@@ -29,6 +29,8 @@ public interface UserService {
 
     Page<UserResponseDto> getAllByJobTitle(Long companyId, Long jobTitleId, Pageable pageable);
 
+    Page<UserResponseDto> getAllByDepartment(Long companyId, Long departmentId, Pageable pageable);
+
     Page<UserResponseDto> getAllByRole(Long companyId, Long roleId, Pageable pageable);
 
     Page<UserResponseDto> search(Long companyId, boolean active, String keyword, Pageable pageable);
@@ -38,7 +40,6 @@ public interface UserService {
     void deactivate(Long companyId, Long userId);
 
     void activate(Long companyId, Long userId);
-
 
     // ----- Rol yönetimi -----
 

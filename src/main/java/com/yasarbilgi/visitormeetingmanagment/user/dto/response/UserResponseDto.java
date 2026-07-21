@@ -13,9 +13,12 @@ public record UserResponseDto(
         String lastName,
         String fullName,
         String email,
+        String username,
         JobTitleSummary jobTitle,
+        DepartmentSummary department,
         boolean owner,
         boolean active,
+        boolean mustChangePassword,
         Set<RoleSummary> roles,
         Instant createdAt
 
@@ -23,6 +26,13 @@ public record UserResponseDto(
 
     @Builder
     public record JobTitleSummary(
+            Long id,
+            String name
+    ) {
+    }
+
+    @Builder
+    public record DepartmentSummary(
             Long id,
             String name
     ) {

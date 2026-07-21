@@ -54,8 +54,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public LoginResponseDto login(String companySlug, String email, String password) {
-        log.info("Login attempt for email: {} in company: {}", email, companySlug);
+    public LoginResponseDto login(String companySlug, String identifier, String password) {
+        log.info("Login attempt for identifier: {} in company: {}", identifier, companySlug);
 
         Company company = companyRepository.findBySlug(companySlug)
                 .orElseThrow(() -> {
@@ -63,19 +63,15 @@ public class AuthServiceImpl implements AuthService {
                     return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
                 });
 
-        User user = userRepository.findByCompanyIdAndEmail(company.getId(), email)
-                .orElseThrow(() -> {
-                    log.warn("Login failed: user not found for email: {} in company: {}", email, companySlug);
-                    return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
-                });
+        User user = resolveUserByIdentifier(company.getId(), identifier);
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            log.warn("Login failed: invalid password for email: {}", email);
+            log.warn("Login failed: invalid password for identifier: {}", identifier);
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         if (!user.isActive()) {
-            log.warn("Login failed: user is inactive: {}", email);
+            log.warn("Login failed: user is inactive: {}", identifier);
             throw new BusinessException(ErrorCode.USER_INACTIVE);
         }
 
@@ -90,6 +86,7 @@ public class AuthServiceImpl implements AuthService {
         log.info("Login successful for user: {}", user.getId());
         return buildLoginResponse(accessToken, refreshToken, user.isMustChangePassword());
     }
+
 
     @Override
     @Transactional
@@ -235,5 +232,34 @@ public class AuthServiceImpl implements AuthService {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException("SHA-256 algorithm not available", e);
         }
+    }
+
+    /**
+     * Verilen identifier'ın email mi yoksa username mi olduğunu, @ karakterinin
+     * varlığına bakarak belirler (DB'ye çift sorgu atmamak için). Username
+     * global unique olduğu için şirket bağımsız aranır; email ise şirket
+     * kapsamında (company_id + email) aranır.
+     */
+    private User resolveUserByIdentifier(Long companyId, String identifier) {
+        if (identifier.contains("@")) {
+            return userRepository.findByCompanyIdAndEmail(companyId, identifier)
+                    .orElseThrow(() -> {
+                        log.warn("Login failed: user not found for email: {}", identifier);
+                        return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+                    });
+        }
+
+        User user = userRepository.findByUsername(identifier)
+                .orElseThrow(() -> {
+                    log.warn("Login failed: user not found for username: {}", identifier);
+                    return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+                });
+
+        if (!user.getCompany().getId().equals(companyId)) {
+            log.warn("Login failed: username {} does not belong to company {}", identifier, companyId);
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        return user;
     }
 }
