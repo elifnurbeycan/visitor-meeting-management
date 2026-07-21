@@ -3,6 +3,7 @@ package com.yasarbilgi.visitormeetingmanagment.user.entity;
 import com.yasarbilgi.visitormeetingmanagment.common.base.TenantBaseEntity;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.department.entity.Department;
 import com.yasarbilgi.visitormeetingmanagment.job.entity.JobTitle;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import jakarta.persistence.Column;
@@ -30,11 +31,14 @@ import java.util.Set;
 @Table(
         name = "users",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_users_company_email", columnNames = {"company_id", "email"})
+                @UniqueConstraint(name = "uk_users_company_email", columnNames = {"company_id", "email"}),
+                @UniqueConstraint(name = "uk_users_username", columnNames = "username")
         },
         indexes = {
                 @Index(name = "idx_users_company_id", columnList = "company_id"),
-                @Index(name = "idx_users_email", columnList = "email")
+                @Index(name = "idx_users_email", columnList = "email"),
+                @Index(name = "idx_users_username", columnList = "username"),
+                @Index(name = "idx_users_department_id", columnList = "department_id")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -49,12 +53,19 @@ public class User extends TenantBaseEntity {
     @Column(name = "email", nullable = false, length = 150)
     private String email;
 
+    @Column(name = "username", nullable = false, length = 50)
+    private String username;
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_title_id", updatable = true)
     private JobTitle jobTitle;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id", updatable = true)
+    private Department department;
 
     @Builder.Default
     @Column(name = "is_owner", nullable = false)
@@ -99,11 +110,26 @@ public class User extends TenantBaseEntity {
         this.email = newEmail;
     }
 
+    public void changeUsername(String newUsername) {
+        if (newUsername == null || newUsername.isBlank()) {
+            throw new BusinessException(ErrorCode.USER_USERNAME_REQUIRED);
+        }
+        this.username = newUsername;
+    }
+
     public void changePasswordHash(String newPasswordHash) {
         if (newPasswordHash == null || newPasswordHash.isBlank()) {
             throw new BusinessException(ErrorCode.USER_PASSWORD_REQUIRED);
         }
         this.passwordHash = newPasswordHash;
+    }
+
+    public void clearMustChangePasswordFlag() {
+        this.mustChangePassword = false;
+    }
+
+    public void forcePasswordChangeOnNextLogin() {
+        this.mustChangePassword = true;
     }
 
     public void assignRole(Role role) {
@@ -125,6 +151,10 @@ public class User extends TenantBaseEntity {
         this.jobTitle = newJobTitle;
     }
 
+    public void changeDepartment(Department newDepartment) {
+        this.department = newDepartment;
+    }
+
     public void promoteToOwner() {
         this.owner = true;
     }
@@ -138,13 +168,5 @@ public class User extends TenantBaseEntity {
             throw new BusinessException(ErrorCode.USER_OWNER_CANNOT_BE_DEACTIVATED);
         }
         this.deactivate();
-    }
-
-    public void clearMustChangePasswordFlag() {
-        this.mustChangePassword = false;
-    }
-
-    public void forcePasswordChangeOnNextLogin() {
-        this.mustChangePassword = true;
     }
 }

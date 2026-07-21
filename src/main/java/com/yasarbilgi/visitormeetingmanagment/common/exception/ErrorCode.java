@@ -181,6 +181,16 @@ public enum ErrorCode {
             "user.passwordRequired"
     ),
 
+    USER_USERNAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "user.usernameRequired"
+    ),
+
+    USER_USERNAME_ALREADY_EXISTS(
+            HttpStatus.CONFLICT,
+            "user.usernameAlreadyExists"
+    ),
+
     // Feature
     FEATURE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
@@ -408,6 +418,21 @@ public enum ErrorCode {
     LAST_SUPER_ADMIN_CANNOT_BE_DEACTIVATED(
             HttpStatus.CONFLICT,
             "superAdmin.lastAdminCannotBeDeactivated"
+    ),
+
+    DEPARTMENT_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "department.notFound"
+    ),
+
+    DEPARTMENT_ALREADY_EXISTS(
+            HttpStatus.CONFLICT,
+            "department.alreadyExists"
+    ),
+
+    DEPARTMENT_NAME_REQUIRED(
+            HttpStatus.BAD_REQUEST,
+            "department.nameRequired"
     ),
 
 

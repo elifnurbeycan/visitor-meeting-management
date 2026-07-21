@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.user.mapper;
 
+import com.yasarbilgi.visitormeetingmanagment.department.entity.Department;
 import com.yasarbilgi.visitormeetingmanagment.job.entity.JobTitle;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
@@ -15,10 +16,13 @@ public interface UserMapper {
 
     @Mapping(target = "fullName", expression = "java(user.getFullName())")
     @Mapping(target = "jobTitle", source = "jobTitle")
+    @Mapping(target = "department", source = "department")
     @Mapping(target = "roles", source = "roles")
     UserResponseDto toResponseDto(User user);
 
     UserResponseDto.JobTitleSummary toJobTitleSummary(JobTitle jobTitle);
+
+    UserResponseDto.DepartmentSummary toDepartmentSummary(Department department);
 
     UserResponseDto.RoleSummary toRoleSummary(Role role);
 

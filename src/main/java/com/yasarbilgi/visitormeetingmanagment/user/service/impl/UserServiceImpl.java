@@ -2,6 +2,8 @@ package com.yasarbilgi.visitormeetingmanagment.user.service.impl;
 
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.department.entity.Department;
+import com.yasarbilgi.visitormeetingmanagment.department.repository.DepartmentRepository;
 import com.yasarbilgi.visitormeetingmanagment.job.entity.JobTitle;
 import com.yasarbilgi.visitormeetingmanagment.job.repository.JobTitleRepository;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
@@ -23,11 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * UserService'in gerçek implementasyonu.
- * Sınıf seviyesinde @Transactional(readOnly = true) tanımlı; yazma yapan
- * metodlar kendi üzerlerinde @Transactional ile bunu override eder.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -37,30 +34,30 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final JobTitleRepository jobTitleRepository;
+    private final DepartmentRepository departmentRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
-    /**
-     * Yeni bir kullanıcı oluşturur. Email'in şirket içinde benzersiz olduğunu
-     * kontrol eder, şifreyi BCrypt ile hashler, verilen rol ID'lerini gerçek
-     * Role nesnelerine çevirip atar. jobTitleId opsiyoneldir.
-     */
     @Override
     @Transactional
     public UserResponseDto create(Long companyId, UserRequestDto dto) {
         log.info("Creating user with email: {} for company: {}", dto.email(), companyId);
 
         validateEmailNotTaken(companyId, dto.email());
+        validateUsernameNotTaken(dto.username());
 
         JobTitle jobTitle = resolveJobTitle(dto.jobTitleId());
+        Department department = resolveDepartment(dto.departmentId());
         Set<Role> roles = resolveRoles(dto.roleIds());
 
         User user = User.builder()
                 .firstName(dto.firstName())
                 .lastName(dto.lastName())
                 .email(dto.email())
+                .username(dto.username())
                 .passwordHash(passwordEncoder.encode(dto.password()))
                 .jobTitle(jobTitle)
+                .department(department)
                 .build();
 
         roles.forEach(user::assignRole);
@@ -71,11 +68,6 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponseDto(saved);
     }
 
-    /**
-     * Var olan bir kullanıcının bilgilerini günceller. Email değiştiyse
-     * benzersizlik kontrolü tekrar yapılır. Şifre her zaman yeniden hashlenir
-     * (dto'da yeni şifre gönderildiği varsayılır).
-     */
     @Override
     @Transactional
     public UserResponseDto update(Long companyId, Long userId, UserRequestDto dto) {
@@ -86,14 +78,23 @@ public class UserServiceImpl implements UserService {
         if (!user.getEmail().equals(dto.email())) {
             validateEmailNotTaken(companyId, dto.email());
         }
+        if (!user.getUsername().equals(dto.username())) {
+            validateUsernameNotTaken(dto.username());
+        }
 
         user.updateName(dto.firstName(), dto.lastName());
         user.changeEmail(dto.email());
+        user.changeUsername(dto.username());
         user.changePasswordHash(passwordEncoder.encode(dto.password()));
 
         if (dto.jobTitleId() != null) {
             JobTitle jobTitle = resolveJobTitle(dto.jobTitleId());
             user.changeJobTitle(jobTitle);
+        }
+
+        if (dto.departmentId() != null) {
+            Department department = resolveDepartment(dto.departmentId());
+            user.changeDepartment(department);
         }
 
         log.info("User updated successfully with id: {}", userId);
@@ -118,11 +119,6 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponseDto(user);
     }
 
-    /**
-     * Şirketin mevcut owner'ını getirir. Her şirkette en fazla 1 owner
-     * olabileceği için (partial unique index ile DB'de garanti altında),
-     * bu sorgu her zaman ya tek bir sonuç ya da hiç sonuç döner.
-     */
     @Override
     public UserResponseDto getOwner(Long companyId) {
         log.debug("Fetching owner for company: {}", companyId);
@@ -132,30 +128,6 @@ public class UserServiceImpl implements UserService {
                     return new BusinessException(ErrorCode.USER_NOT_FOUND);
                 });
         return userMapper.toResponseDto(owner);
-    }
-
-    /**
-     * SuperAdmin tarafından tetiklenen, zorla owner değişikliği. Mevcut
-     * owner'ın rızası aranmaz. Şirkette bir owner varsa önce demote edilir,
-     * yeni kullanıcı owner yapılır. Şirkette hiç owner yoksa direkt atanır.
-     */
-    @Override
-    @Transactional
-    public UserResponseDto forceTransferOwnership(Long companyId, Long newOwnerId) {
-        log.warn("FORCE ownership transfer to user: {} in company: {} (triggered by SuperAdmin)",
-                newOwnerId, companyId);
-
-        userRepository.findByCompanyIdAndOwnerTrue(companyId)
-                .ifPresent(currentOwner -> {
-                    currentOwner.demoteFromOwner();
-                    log.warn("Previous owner {} demoted", currentOwner.getId());
-                });
-
-        User newOwner = findUserOrThrow(companyId, newOwnerId);
-        newOwner.promoteToOwner();
-
-        log.warn("User {} force-promoted to owner in company {}", newOwnerId, companyId);
-        return userMapper.toResponseDto(newOwner);
     }
 
     @Override
@@ -180,6 +152,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Page<UserResponseDto> getAllByDepartment(Long companyId, Long departmentId, Pageable pageable) {
+        log.debug("Fetching users by departmentId={} for company: {}", departmentId, companyId);
+        return userRepository.findAllByCompanyIdAndDepartmentId(companyId, departmentId, pageable)
+                .map(userMapper::toResponseDto);
+    }
+
+    @Override
     public Page<UserResponseDto> getAllByRole(Long companyId, Long roleId, Pageable pageable) {
         log.debug("Fetching users by roleId={} for company: {}", roleId, companyId);
         return userRepository.findAllByCompanyIdAndRoleId(companyId, roleId, pageable)
@@ -193,10 +172,6 @@ public class UserServiceImpl implements UserService {
                 .map(userMapper::toResponseDto);
     }
 
-    /**
-     * Bir kullanıcıyı pasif hale getirir. Owner ise entity kendi içinde
-     * USER_OWNER_CANNOT_BE_DEACTIVATED fırlatır (deactivateIfAllowed).
-     */
     @Override
     @Transactional
     public void deactivate(Long companyId, Long userId) {
@@ -213,38 +188,24 @@ public class UserServiceImpl implements UserService {
         user.activate();
     }
 
-    /**
-     * Bir kullanıcıya rol atar. Rolün, aynı şirkete ait olduğu doğrulanır
-     * (başka şirketin rolü yanlışlıkla atanamaz).
-     */
     @Override
     @Transactional
     public UserResponseDto assignRole(Long companyId, Long userId, Long roleId) {
         log.info("Assigning role: {} to user: {} in company: {}", roleId, userId, companyId);
-
         User user = findUserOrThrow(companyId, userId);
         Role role = findRoleOrThrow(companyId, roleId);
-
         user.assignRole(role);
-
         log.info("Role assigned successfully");
         return userMapper.toResponseDto(user);
     }
 
-    /**
-     * Bir kullanıcıdan rol geri alır. Owner ise entity kendi içinde
-     * USER_OWNER_ROLE_MODIFICATION_FORBIDDEN fırlatır.
-     */
     @Override
     @Transactional
     public UserResponseDto revokeRole(Long companyId, Long userId, Long roleId) {
         log.info("Revoking role: {} from user: {} in company: {}", roleId, userId, companyId);
-
         User user = findUserOrThrow(companyId, userId);
         Role role = findRoleOrThrow(companyId, roleId);
-
         user.revokeRole(role);
-
         log.info("Role revoked successfully");
         return userMapper.toResponseDto(user);
     }
@@ -253,21 +214,13 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto changeJobTitle(Long companyId, Long userId, Long jobTitleId) {
         log.info("Changing job title to: {} for user: {} in company: {}", jobTitleId, userId, companyId);
-
         User user = findUserOrThrow(companyId, userId);
         JobTitle jobTitle = resolveJobTitle(jobTitleId);
-
         user.changeJobTitle(jobTitle);
-
         log.info("Job title changed successfully");
         return userMapper.toResponseDto(user);
     }
 
-    /**
-     * Bir kullanıcıyı owner yapar. Şirkette zaten bir owner varsa reddedilir
-     * — "tek owner" kuralının servis katmanındaki güvenlik ağı (DB'de de
-     * partial unique index ile garanti altında).
-     */
     @Override
     @Transactional
     public UserResponseDto promoteToOwner(Long companyId, Long userId) {
@@ -285,11 +238,6 @@ public class UserServiceImpl implements UserService {
         return userMapper.toResponseDto(user);
     }
 
-    /**
-     * Owner'lığı bir kullanıcıdan diğerine devreder. Sadece mevcut owner'ın
-     * kendisi bu işlemi tetikleyebilir (currentOwnerId ile doğrulanır).
-     * Eski owner'ın owner bayrağı kaldırılır, yeni kullanıcı owner yapılır.
-     */
     @Override
     @Transactional
     public UserResponseDto transferOwnership(Long companyId, Long currentOwnerId, Long newOwnerId) {
@@ -308,6 +256,25 @@ public class UserServiceImpl implements UserService {
         newOwner.promoteToOwner();
 
         log.info("Ownership transferred successfully");
+        return userMapper.toResponseDto(newOwner);
+    }
+
+    @Override
+    @Transactional
+    public UserResponseDto forceTransferOwnership(Long companyId, Long newOwnerId) {
+        log.warn("FORCE ownership transfer to user: {} in company: {} (triggered by SuperAdmin)",
+                newOwnerId, companyId);
+
+        userRepository.findByCompanyIdAndOwnerTrue(companyId)
+                .ifPresent(currentOwner -> {
+                    currentOwner.demoteFromOwner();
+                    log.warn("Previous owner {} demoted", currentOwner.getId());
+                });
+
+        User newOwner = findUserOrThrow(companyId, newOwnerId);
+        newOwner.promoteToOwner();
+
+        log.warn("User {} force-promoted to owner in company {}", newOwnerId, companyId);
         return userMapper.toResponseDto(newOwner);
     }
 
@@ -352,6 +319,17 @@ public class UserServiceImpl implements UserService {
                 });
     }
 
+    private Department resolveDepartment(Long departmentId) {
+        if (departmentId == null) {
+            return null;
+        }
+        return departmentRepository.findById(departmentId)
+                .orElseThrow(() -> {
+                    log.warn("Department not found with id: {}", departmentId);
+                    return new BusinessException(ErrorCode.DEPARTMENT_NOT_FOUND);
+                });
+    }
+
     private Set<Role> resolveRoles(Set<Long> roleIds) {
         if (roleIds == null || roleIds.isEmpty()) {
             return Set.of();
@@ -368,6 +346,12 @@ public class UserServiceImpl implements UserService {
     private void validateEmailNotTaken(Long companyId, String email) {
         if (userRepository.existsByCompanyIdAndEmail(companyId, email)) {
             throw new BusinessException(ErrorCode.USER_ALREADY_EXISTS);
+        }
+    }
+
+    private void validateUsernameNotTaken(String username) {
+        if (userRepository.existsByUsername(username)) {
+            throw new BusinessException(ErrorCode.USER_USERNAME_ALREADY_EXISTS);
         }
     }
 }
