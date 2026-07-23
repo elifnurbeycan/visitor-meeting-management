@@ -21,6 +21,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.Filter;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -28,6 +29,7 @@ import java.util.Set;
 @Getter
 @SuperBuilder
 @Entity
+@Filter(name = "tenantFilter")
 @Table(
         name = "users",
         uniqueConstraints = {
