@@ -10,8 +10,10 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.Filter;
 
 @Entity
+@Filter(name = "tenantFilter")
 @Table(
         name = "user_permission_overrides",
         uniqueConstraints = {
