@@ -7,6 +7,7 @@ import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
 import com.yasarbilgi.visitormeetingmanagment.company.repository.CompanyRepository;
 import com.yasarbilgi.visitormeetingmanagment.platform.entity.SuperAdmin;
+import com.yasarbilgi.visitormeetingmanagment.platform.enums.CompanyStatus;
 import com.yasarbilgi.visitormeetingmanagment.platform.repository.SuperAdminRepository;
 import com.yasarbilgi.visitormeetingmanagment.security.entity.RefreshToken;
 import com.yasarbilgi.visitormeetingmanagment.security.repository.RefreshTokenRepository;
@@ -62,6 +63,21 @@ public class AuthServiceImpl implements AuthService {
                     log.warn("Login failed: company not found for slug: {}", companySlug);
                     return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
                 });
+
+        if (!company.isActive()) {
+            log.warn("Login failed: company is deactivated: {}", companySlug);
+            throw new BusinessException(ErrorCode.COMPANY_INACTIVE);
+        }
+
+        if (company.getStatus() == CompanyStatus.PENDING_APPROVAL) {
+            log.warn("Login failed: company approval pending: {}", companySlug);
+            throw new BusinessException(ErrorCode.COMPANY_APPROVAL_PENDING);
+        }
+
+        if (company.getStatus() == CompanyStatus.REJECTED) {
+            log.warn("Login failed: company rejected: {}", companySlug);
+            throw new BusinessException(ErrorCode.COMPANY_REJECTED);
+        }
 
         User user = resolveUserByIdentifier(company.getId(), identifier);
 

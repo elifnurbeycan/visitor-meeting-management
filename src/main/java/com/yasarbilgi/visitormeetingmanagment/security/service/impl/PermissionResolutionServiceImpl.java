@@ -2,6 +2,7 @@ package com.yasarbilgi.visitormeetingmanagment.security.service.impl;
 
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.permission.enums.PermissionCode;
 import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import com.yasarbilgi.visitormeetingmanagment.user.repository.UserRepository;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -44,6 +46,12 @@ public class PermissionResolutionServiceImpl implements PermissionResolutionServ
                     log.warn("Cannot resolve permissions: user not found with id: {}", userId);
                     return new BusinessException(ErrorCode.USER_NOT_FOUND);
                 });
+        if (user.isOwner()) {
+            log.debug("User {} is company owner, granting all permissions", userId);
+            return Arrays.stream(PermissionCode.values())
+                    .map(Enum::name)
+                    .collect(Collectors.toCollection(HashSet::new));
+        }
 
         Set<String> permissions = user.getRoles().stream()
                 .flatMap(role -> role.getPermissions().stream())

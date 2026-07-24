@@ -62,6 +62,16 @@ public enum ErrorCode {
             "company.cannotHardDeleteActive"
     ),
 
+    COMPANY_APPROVAL_PENDING(
+            HttpStatus.FORBIDDEN,
+            "company.approvalPending"
+    ),
+
+    COMPANY_REJECTED(
+            HttpStatus.FORBIDDEN,
+            "company.rejected"
+    ),
+
     USER_NOT_OWNER(
             HttpStatus.FORBIDDEN,
             "user.notOwner"
