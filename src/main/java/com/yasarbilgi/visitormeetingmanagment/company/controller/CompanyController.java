@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -42,6 +43,7 @@ public class CompanyController {
     /**
      * Var olan bir şirketi günceller.
      */
+    @PreAuthorize("hasRole('SUPER_ADMIN') or (#id == authentication.principal.companyId and hasAuthority('COMPANY_UPDATE'))")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CompanyResponseDto>> update(
             @PathVariable Long id,
@@ -54,6 +56,7 @@ public class CompanyController {
     /**
      * ID'ye göre tekil bir şirket getirir.
      */
+    @PreAuthorize("hasRole('SUPER_ADMIN') or (#id == authentication.principal.companyId and hasAuthority('COMPANY_VIEW'))")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<CompanyResponseDto>> getById(@PathVariable Long id) {
         CompanyResponseDto company = companyService.getById(id);
@@ -74,6 +77,7 @@ public class CompanyController {
      * Varsayılan: sayfa boyutu 20, isme göre artan sıralama.
      */
     @GetMapping
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<CompanyResponseDto>>> getAll(
             @PageableDefault(size = 20, sort = "name") Pageable pageable
     ) {
@@ -85,6 +89,7 @@ public class CompanyController {
      * Aktif/pasif durumuna göre filtrelenmiş şirketleri sayfalanmış şekilde listeler.
      */
     @GetMapping("/by-active")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<CompanyResponseDto>>> getAllByActive(
             @RequestParam boolean active,
             @PageableDefault(size = 20, sort = "name") Pageable pageable
@@ -98,6 +103,7 @@ public class CompanyController {
      * Onay durumuna göre filtrelenmiş şirketleri sayfalanmış şekilde listeler.
      */
     @GetMapping("/by-status")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<CompanyResponseDto>>> getAllByStatus(
             @RequestParam CompanyStatus status,
             @PageableDefault(size = 20, sort = "name") Pageable pageable
@@ -111,6 +117,7 @@ public class CompanyController {
      * İsim veya slug üzerinde anahtar kelime araması yapar.
      */
     @GetMapping("/search")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<CompanyResponseDto>>> search(
             @RequestParam(defaultValue = "true") boolean active,
             @RequestParam(required = false) String keyword,
@@ -126,6 +133,7 @@ public class CompanyController {
      * şekilde sayfalanmış olarak listeler.
      */
     @GetMapping("/pending-approvals")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<CompanyResponseDto>>> getPendingApprovals(
             @PageableDefault(size = 20) Pageable pageable
     ) {
@@ -138,36 +146,18 @@ public class CompanyController {
      * Onay bekleyen toplam şirket sayısını döner.
      */
     @GetMapping("/pending-approvals/count")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<Long>> countPendingApprovals() {
         long count = companyService.countPendingApprovals();
         return ResponseEntity.ok(ApiResponse.success(count));
     }
 
-    /**
-     * Onay bekleyen bir şirketi onaylar.
-     */
-    @PatchMapping("/{id}/approve")
-    public ResponseEntity<ApiResponse<CompanyResponseDto>> approve(@PathVariable Long id) {
-        CompanyResponseDto approved = companyService.approve(id);
-        return ResponseEntity.ok(ApiResponse.success("Company approved successfully", approved));
-    }
-
-    /**
-     * Onay bekleyen bir şirketi, belirtilen sebeple reddeder.
-     */
-    @PatchMapping("/{id}/reject")
-    public ResponseEntity<ApiResponse<CompanyResponseDto>> reject(
-            @PathVariable Long id,
-            @RequestParam String reason
-    ) {
-        CompanyResponseDto rejected = companyService.reject(id, reason);
-        return ResponseEntity.ok(ApiResponse.success("Company rejected successfully", rejected));
-    }
 
     /**
      * Bir şirketi pasif hale getirir (soft-delete).
      */
     @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or (#id == authentication.principal.companyId and hasAuthority('COMPANY_MANAGE_SETTINGS'))")
     public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
         companyService.deactivate(id);
         return ResponseEntity.ok(ApiResponse.success("Company deactivated successfully"));
@@ -177,6 +167,7 @@ public class CompanyController {
      * Pasif bir şirketi tekrar aktif eder.
      */
     @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or (#id == authentication.principal.companyId and hasAuthority('COMPANY_MANAGE_SETTINGS'))")
     public ResponseEntity<ApiResponse<Void>> activate(@PathVariable Long id) {
         companyService.activate(id);
         return ResponseEntity.ok(ApiResponse.success("Company activated successfully"));
