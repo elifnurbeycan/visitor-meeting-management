@@ -6,4 +6,6 @@ public interface PermissionResolutionService {
 
     Set<String> resolveEffectivePermissions(Long userId);
 
+    boolean hasAllPermissions(Long userId);
+
 }

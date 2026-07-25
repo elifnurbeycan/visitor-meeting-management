@@ -2,12 +2,17 @@ package com.yasarbilgi.visitormeetingmanagment.user.service.impl;
 
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
+import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
+import com.yasarbilgi.visitormeetingmanagment.company.repository.CompanyRepository;
 import com.yasarbilgi.visitormeetingmanagment.department.entity.Department;
 import com.yasarbilgi.visitormeetingmanagment.department.repository.DepartmentRepository;
 import com.yasarbilgi.visitormeetingmanagment.job.entity.JobTitle;
 import com.yasarbilgi.visitormeetingmanagment.job.repository.JobTitleRepository;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleRepository;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
@@ -35,8 +40,11 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final JobTitleRepository jobTitleRepository;
     private final DepartmentRepository departmentRepository;
+    private final CompanyRepository companyRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final PermissionResolutionService permissionResolutionService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     @Transactional
@@ -46,11 +54,18 @@ public class UserServiceImpl implements UserService {
         validateEmailNotTaken(companyId, dto.email());
         validateUsernameNotTaken(dto.username());
 
-        JobTitle jobTitle = resolveJobTitle(dto.jobTitleId());
-        Department department = resolveDepartment(dto.departmentId());
-        Set<Role> roles = resolveRoles(dto.roleIds());
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> {
+                    log.warn("Cannot create user: company not found with id: {}", companyId);
+                    return new BusinessException(ErrorCode.COMPANY_NOT_FOUND);
+                });
+
+        JobTitle jobTitle = resolveJobTitle(companyId, dto.jobTitleId());
+        Department department = resolveDepartment(companyId, dto.departmentId());
+        Set<Role> roles = resolveRoles(companyId, dto.roleIds());
 
         User user = User.builder()
+                .company(company)
                 .firstName(dto.firstName())
                 .lastName(dto.lastName())
                 .email(dto.email())
@@ -59,7 +74,6 @@ public class UserServiceImpl implements UserService {
                 .jobTitle(jobTitle)
                 .department(department)
                 .build();
-
         roles.forEach(user::assignRole);
 
         User saved = userRepository.save(user);
@@ -88,12 +102,12 @@ public class UserServiceImpl implements UserService {
         user.changePasswordHash(passwordEncoder.encode(dto.password()));
 
         if (dto.jobTitleId() != null) {
-            JobTitle jobTitle = resolveJobTitle(dto.jobTitleId());
+            JobTitle jobTitle = resolveJobTitle(companyId, dto.jobTitleId());
             user.changeJobTitle(jobTitle);
         }
 
         if (dto.departmentId() != null) {
-            Department department = resolveDepartment(dto.departmentId());
+            Department department = resolveDepartment(companyId, dto.departmentId());
             user.changeDepartment(department);
         }
 
@@ -176,6 +190,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deactivate(Long companyId, Long userId) {
         log.info("Deactivating user with id: {} for company: {}", userId, companyId);
+        enforceAdminHierarchy(companyId, userId);
         User user = findUserOrThrow(companyId, userId);
         user.deactivateIfAllowed();
     }
@@ -184,6 +199,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void activate(Long companyId, Long userId) {
         log.info("Activating user with id: {} for company: {}", userId, companyId);
+        enforceAdminHierarchy(companyId, userId);
         User user = findUserOrThrow(companyId, userId);
         user.activate();
     }
@@ -192,6 +208,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto assignRole(Long companyId, Long userId, Long roleId) {
         log.info("Assigning role: {} to user: {} in company: {}", roleId, userId, companyId);
+        enforceAdminHierarchy(companyId, userId);
         User user = findUserOrThrow(companyId, userId);
         Role role = findRoleOrThrow(companyId, roleId);
         user.assignRole(role);
@@ -203,6 +220,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto revokeRole(Long companyId, Long userId, Long roleId) {
         log.info("Revoking role: {} from user: {} in company: {}", roleId, userId, companyId);
+        enforceAdminHierarchy(companyId, userId);
         User user = findUserOrThrow(companyId, userId);
         Role role = findRoleOrThrow(companyId, roleId);
         user.revokeRole(role);
@@ -214,8 +232,9 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponseDto changeJobTitle(Long companyId, Long userId, Long jobTitleId) {
         log.info("Changing job title to: {} for user: {} in company: {}", jobTitleId, userId, companyId);
+        enforceAdminHierarchy(companyId, userId);
         User user = findUserOrThrow(companyId, userId);
-        JobTitle jobTitle = resolveJobTitle(jobTitleId);
+        JobTitle jobTitle = resolveJobTitle(companyId, jobTitleId);
         user.changeJobTitle(jobTitle);
         log.info("Job title changed successfully");
         return userMapper.toResponseDto(user);
@@ -232,6 +251,10 @@ public class UserServiceImpl implements UserService {
         }
 
         User user = findUserOrThrow(companyId, userId);
+        if (!user.isActive()) {
+            log.warn("User {} is not active, cannot be promoted to owner", userId);
+            throw new BusinessException(ErrorCode.USER_INACTIVE);
+        }
         user.promoteToOwner();
 
         log.info("User promoted to owner successfully");
@@ -251,6 +274,10 @@ public class UserServiceImpl implements UserService {
         }
 
         User newOwner = findUserOrThrow(companyId, newOwnerId);
+        if (!newOwner.isActive()) {
+            log.warn("User {} is not active, cannot be promoted to owner", newOwnerId);
+            throw new BusinessException(ErrorCode.USER_INACTIVE);
+        }
 
         currentOwner.demoteFromOwner();
         newOwner.promoteToOwner();
@@ -308,36 +335,39 @@ public class UserServiceImpl implements UserService {
                 });
     }
 
-    private JobTitle resolveJobTitle(Long jobTitleId) {
+    private JobTitle resolveJobTitle(Long companyId, Long jobTitleId) {
         if (jobTitleId == null) {
             return null;
         }
         return jobTitleRepository.findById(jobTitleId)
+                .filter(jobTitle -> jobTitle.getCompany().getId().equals(companyId))
                 .orElseThrow(() -> {
-                    log.warn("Job title not found with id: {}", jobTitleId);
+                    log.warn("Job title not found with id: {} in company: {}", jobTitleId, companyId);
                     return new BusinessException(ErrorCode.JOB_TITLE_NOT_FOUND);
                 });
     }
 
-    private Department resolveDepartment(Long departmentId) {
+    private Department resolveDepartment(Long companyId, Long departmentId) {
         if (departmentId == null) {
             return null;
         }
         return departmentRepository.findById(departmentId)
+                .filter(department -> department.getCompany().getId().equals(companyId))
                 .orElseThrow(() -> {
-                    log.warn("Department not found with id: {}", departmentId);
+                    log.warn("Department not found with id: {} in company: {}", departmentId, companyId);
                     return new BusinessException(ErrorCode.DEPARTMENT_NOT_FOUND);
                 });
     }
 
-    private Set<Role> resolveRoles(Set<Long> roleIds) {
+    private Set<Role> resolveRoles(Long companyId, Set<Long> roleIds) {
         if (roleIds == null || roleIds.isEmpty()) {
             return Set.of();
         }
         return roleIds.stream()
                 .map(id -> roleRepository.findById(id)
+                        .filter(role -> role.getCompany().getId().equals(companyId))
                         .orElseThrow(() -> {
-                            log.warn("Role not found with id: {}", id);
+                            log.warn("Role not found with id: {} in company: {}", id, companyId);
                             return new BusinessException(ErrorCode.ROLE_NOT_FOUND);
                         }))
                 .collect(Collectors.toSet());
@@ -352,6 +382,40 @@ public class UserServiceImpl implements UserService {
     private void validateUsernameNotTaken(String username) {
         if (userRepository.existsByUsername(username)) {
             throw new BusinessException(ErrorCode.USER_USERNAME_ALREADY_EXISTS);
+        }
+    }
+
+    /**
+     * "Adminler birbirine müdahale edemez" kuralını uygular.
+     * Owner her zaman herkese müdahale edebilir. Admin (tüm izinlere sahip
+     * ama owner olmayan) sıradan kullanıcılara müdahale edebilir, ama başka
+     * bir admine (kendisi hariç) müdahale edemez.
+     */
+    private void enforceAdminHierarchy(Long companyId, Long targetUserId) {
+        AuthenticatedUser currentUser = currentUserProvider.getCurrentUser()
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
+
+        Long actorUserId = currentUser.userId();
+
+        if (actorUserId.equals(targetUserId)) {
+            return;
+        }
+
+        User actor = findUserOrThrow(companyId, actorUserId);
+        if (actor.isOwner()) {
+            return;
+        }
+
+        boolean actorIsAdmin = permissionResolutionService.hasAllPermissions(actorUserId);
+        if (!actorIsAdmin) {
+            return;
+        }
+
+        boolean targetIsAdmin = permissionResolutionService.hasAllPermissions(targetUserId);
+        if (targetIsAdmin) {
+            log.warn("Admin {} attempted to modify another admin {} in company {}",
+                    actorUserId, targetUserId, companyId);
+            throw new BusinessException(ErrorCode.ADMIN_CANNOT_MODIFY_ANOTHER_ADMIN);
         }
     }
 }

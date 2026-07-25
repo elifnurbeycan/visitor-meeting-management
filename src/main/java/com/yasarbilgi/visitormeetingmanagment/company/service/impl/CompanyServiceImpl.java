@@ -218,7 +218,7 @@ public class CompanyServiceImpl implements CompanyService {
      * rezervasyonlar vb.) veritabanından KALICI olarak siler. Bu işlem
      * geri alınamaz. Foreign key'ler ON DELETE CASCADE ile tanımlı olduğu
      * için, tek bir DELETE ile tüm bağlı kayıtlar otomatik silinir.
-     *
+
      * Güvenlik önlemi: sadece PENDING_APPROVAL veya REJECTED durumundaki
      * şirketler hard-delete edilebilir. Zaten ACTIVE (onaylanmış, çalışan)
      * bir şirketi kalıcı silmek istiyorsanız, önce reddedilmiş/soft-delete
