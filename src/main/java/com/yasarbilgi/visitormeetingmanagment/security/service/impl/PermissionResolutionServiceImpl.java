@@ -37,6 +37,13 @@ public class PermissionResolutionServiceImpl implements PermissionResolutionServ
     private final UserRepository userRepository;
     private final UserPermissionOverrideRepository userPermissionOverrideRepository;
 
+    private static final Set<String> BASELINE_PERMISSIONS = Set.of(
+            PermissionCode.ROOM_VIEW.name(),
+            PermissionCode.ROOM_VIEW_AVAILABILITY.name(),
+            PermissionCode.RESERVATION_VIEW_OWN.name(),
+            PermissionCode.DASHBOARD_VIEW.name()
+    );
+
     @Override
     public Set<String> resolveEffectivePermissions(Long userId) {
         log.debug("Resolving effective permissions for user: {}", userId);
@@ -53,10 +60,15 @@ public class PermissionResolutionServiceImpl implements PermissionResolutionServ
                     .collect(Collectors.toCollection(HashSet::new));
         }
 
-        Set<String> permissions = user.getRoles().stream()
-                .flatMap(role -> role.getPermissions().stream())
-                .map(permission -> permission.getCode().name())
-                .collect(Collectors.toCollection(HashSet::new));
+        Set<String> permissions;
+        if (user.getRoles().isEmpty()) {
+            permissions = new HashSet<>(BASELINE_PERMISSIONS);
+        } else {
+            permissions = user.getRoles().stream()
+                    .flatMap(role -> role.getPermissions().stream())
+                    .map(permission -> permission.getCode().name())
+                    .collect(Collectors.toCollection(HashSet::new));
+        }
 
         List<UserPermissionOverride> overrides =
                 userPermissionOverrideRepository.findAllByUserIdAndActive(userId, true);
@@ -73,5 +85,11 @@ public class PermissionResolutionServiceImpl implements PermissionResolutionServ
 
         log.debug("Resolved {} effective permissions for user: {}", permissions.size(), userId);
         return permissions;
+    }
+
+    @Override
+    public boolean hasAllPermissions(Long userId) {
+        Set<String> effective = resolveEffectivePermissions(userId);
+        return effective.size() == PermissionCode.values().length;
     }
 }

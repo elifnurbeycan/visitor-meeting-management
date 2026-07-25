@@ -66,6 +66,7 @@ public class CompanyController {
     /**
      * Slug'a göre tekil bir şirket getirir (okunabilir URL senaryoları için).
      */
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @GetMapping("/slug/{slug}")
     public ResponseEntity<ApiResponse<CompanyResponseDto>> getBySlug(@PathVariable String slug) {
         CompanyResponseDto company = companyService.getBySlug(slug);
