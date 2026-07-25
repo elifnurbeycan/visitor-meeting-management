@@ -98,10 +98,6 @@ public enum ErrorCode {
             "role.nameRequired"
     ),
 
-    ROLE_SYSTEM_ROLE_CANNOT_BE_DEACTIVATED(
-            HttpStatus.FORBIDDEN,
-            "role.systemRoleCannotBeDeactivated"
-    ),
 
     ROLE_TEMPLATE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
@@ -111,6 +107,11 @@ public enum ErrorCode {
     ROLE_TEMPLATE_NAME_REQUIRED(
             HttpStatus.BAD_REQUEST,
             "roleTemplate.nameRequired"
+    ),
+
+    ROLE_PERMISSION_MANAGEMENT_FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "role.permissionManagementForbidden"
     ),
 
     // Permission

@@ -3,6 +3,7 @@ package com.yasarbilgi.visitormeetingmanagment.security.service.impl;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.permission.enums.PermissionCode;
+import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import com.yasarbilgi.visitormeetingmanagment.user.repository.UserRepository;
@@ -65,6 +66,7 @@ public class PermissionResolutionServiceImpl implements PermissionResolutionServ
             permissions = new HashSet<>(BASELINE_PERMISSIONS);
         } else {
             permissions = user.getRoles().stream()
+                    .filter(Role::isActive)
                     .flatMap(role -> role.getPermissions().stream())
                     .map(permission -> permission.getCode().name())
                     .collect(Collectors.toCollection(HashSet::new));
