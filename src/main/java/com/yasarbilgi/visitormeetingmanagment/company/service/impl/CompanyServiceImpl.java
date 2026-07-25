@@ -10,6 +10,10 @@ import com.yasarbilgi.visitormeetingmanagment.company.mapper.CompanyMapper;
 import com.yasarbilgi.visitormeetingmanagment.company.repository.CompanyRepository;
 import com.yasarbilgi.visitormeetingmanagment.company.service.CompanyService;
 import com.yasarbilgi.visitormeetingmanagment.platform.enums.CompanyStatus;
+import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
+import com.yasarbilgi.visitormeetingmanagment.role.entity.RoleTemplate;
+import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleRepository;
+import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleTemplateRepository;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import com.yasarbilgi.visitormeetingmanagment.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashSet;
+import java.util.List;
 
 
 @Slf4j
@@ -31,6 +38,8 @@ public class CompanyServiceImpl implements CompanyService {
     private final UserRepository userRepository;
     private final CompanyMapper companyMapper;
     private final PasswordEncoder passwordEncoder;
+    private final RoleTemplateRepository roleTemplateRepository;
+    private final RoleRepository roleRepository;
 
     @Override
     @Transactional
@@ -188,12 +197,21 @@ public class CompanyServiceImpl implements CompanyService {
     @Override
     @Transactional
     public CompanyResponseDto approve(Long id) {
-        log.info("Approving company with id: {}", id);
-
         Company company = findCompanyOrThrow(id);
         company.approve();
 
-        log.info("Company approved successfully with id: {}", id);
+        List<RoleTemplate> templates = roleTemplateRepository.findAllByActiveTrue();
+        for (RoleTemplate template : templates) {
+            Role role = Role.builder()
+                    .company(company)
+                    .name(template.getName())
+                    .description(template.getDescription())
+                    .permissions(new HashSet<>(template.getPermissions()))
+                    .build();
+            roleRepository.save(role);
+        }
+
+        log.info("Company {} approved, {} default roles created", id, templates.size());
         return companyMapper.toResponseDto(company);
     }
 

@@ -46,14 +46,6 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
             Pageable pageable
     );
 
-    /**
-     * Belirli bir şirkete ait sistem rollerini veya özel rolleri getirir.
-     */
-    Page<Role> findAllByCompanyIdAndSystemRole(
-            Long companyId,
-            boolean systemRole,
-            Pageable pageable
-    );
 
     /**
      * Rol adı veya açıklaması üzerinde anahtar kelime araması yapar.

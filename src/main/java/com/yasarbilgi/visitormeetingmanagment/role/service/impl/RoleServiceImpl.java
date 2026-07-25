@@ -13,6 +13,11 @@ import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.role.mapper.RoleMapper;
 import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleRepository;
 import com.yasarbilgi.visitormeetingmanagment.role.service.RoleService;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
+import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
+import com.yasarbilgi.visitormeetingmanagment.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,6 +39,9 @@ public class RoleServiceImpl implements RoleService {
     private final RoleMapper roleMapper;
     private final CompanyRepository companyRepository;
     private final PermissionRepository permissionRepository;
+    private final UserRepository userRepository;
+    private final PermissionResolutionService permissionResolutionService;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Belirtilen şirkete ait yeni bir rol oluşturur.
@@ -53,6 +61,9 @@ public class RoleServiceImpl implements RoleService {
                 companyId
         );
 
+        enforceFullAdminPrivilege(companyId);
+
+
         Company company = findCompanyOrThrow(companyId);
 
         validateRoleNameNotTaken(
@@ -67,7 +78,6 @@ public class RoleServiceImpl implements RoleService {
                 .company(company)
                 .name(dto.name())
                 .description(dto.description())
-                .systemRole(false)
                 .permissions(new HashSet<>(permissions))
                 .build();
 
@@ -100,6 +110,8 @@ public class RoleServiceImpl implements RoleService {
                 id,
                 companyId
         );
+
+        enforceFullAdminPrivilege(companyId);
 
         Role role = findRoleOrThrow(
                 companyId,
@@ -202,30 +214,6 @@ public class RoleServiceImpl implements RoleService {
                 .map(roleMapper::toResponseDto);
     }
 
-    /**
-     * Belirtilen şirkete ait sistem rollerini veya özel rolleri getirir.
-     */
-    @Override
-    public Page<RoleResponseDto> getAllBySystemRole(
-            Long companyId,
-            boolean systemRole,
-            Pageable pageable
-    ) {
-        log.debug(
-                "Fetching roles for company id: {}, systemRole: {}, page: {}",
-                companyId,
-                systemRole,
-                pageable
-        );
-
-        return roleRepository
-                .findAllByCompanyIdAndSystemRole(
-                        companyId,
-                        systemRole,
-                        pageable
-                )
-                .map(roleMapper::toResponseDto);
-    }
 
     /**
      * Rol adı veya açıklaması üzerinde anahtar kelime araması yapar.
@@ -280,6 +268,8 @@ public class RoleServiceImpl implements RoleService {
                 companyId
         );
 
+        enforceFullAdminPrivilege(companyId);
+
         Role role = findRoleOrThrow(
                 companyId,
                 roleId
@@ -315,6 +305,8 @@ public class RoleServiceImpl implements RoleService {
                 roleId,
                 companyId
         );
+
+        enforceFullAdminPrivilege(companyId);
 
         Role role = findRoleOrThrow(
                 companyId,
@@ -358,7 +350,7 @@ public class RoleServiceImpl implements RoleService {
                 id
         );
 
-        role.deactivateIfAllowed();
+        role.deactivate();
 
         log.info(
                 "Role deactivated successfully with id: {}",
@@ -557,5 +549,41 @@ public class RoleServiceImpl implements RoleService {
                         !role.hasPermission(permission)
                 )
                 .forEach(role::assignPermission);
+    }
+
+    /**
+     * Rol izinlerini (create/update/assignPermission/revokePermission) sadece
+     * SuperAdmin, owner (isOwner=true) veya tüm izinlere sahip bir admin
+     * değiştirebilir. Kısıtlı izinlere sahip sıradan kullanıcılar, kendi
+     * sahip olmadıkları izinleri bir role ekleyip sonra o role kendilerini
+     * atayarak yetki yükseltmesi (privilege escalation) yapamaz.
+     */
+    private void enforceFullAdminPrivilege(Long companyId) {
+        AuthenticatedUser currentUser = currentUserProvider.getCurrentUser()
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
+
+        if (currentUser.superAdmin()) {
+            return;
+        }
+
+        User actor = userRepository.findById(currentUser.userId())
+                .filter(user -> user.getCompany().getId().equals(companyId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (actor.isOwner()) {
+            return;
+        }
+
+        if (permissionResolutionService.hasAllPermissions(actor.getId())) {
+            return;
+        }
+
+        log.warn(
+                "User {} attempted to manage role permissions without full admin privilege in company {}",
+                currentUser.userId(),
+                companyId
+        );
+
+        throw new BusinessException(ErrorCode.ROLE_PERMISSION_MANAGEMENT_FORBIDDEN);
     }
 }

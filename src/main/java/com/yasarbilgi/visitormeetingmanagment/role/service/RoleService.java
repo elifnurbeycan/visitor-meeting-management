@@ -35,11 +35,6 @@ public interface RoleService {
             Pageable pageable
     );
 
-    Page<RoleResponseDto> getAllBySystemRole(
-            Long companyId,
-            boolean systemRole,
-            Pageable pageable
-    );
 
     Page<RoleResponseDto> search(
             Long companyId,

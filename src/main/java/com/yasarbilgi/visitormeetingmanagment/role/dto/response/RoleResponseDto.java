@@ -10,7 +10,6 @@ public record RoleResponseDto(
         Long id,
         String name,
         String description,
-        boolean systemRole,
         Set<PermissionSummary> permissions
 
 ) {

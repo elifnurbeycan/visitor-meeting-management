@@ -45,9 +45,6 @@ public class Role extends TenantBaseEntity {
     @Column(name = "description", length = 500)
     private String description;
 
-    @Column(name = "is_system_role", nullable = false)
-    private boolean systemRole;
-
     @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -84,10 +81,5 @@ public class Role extends TenantBaseEntity {
         this.description = description;
     }
 
-    public void deactivateIfAllowed() {
-        if (this.systemRole) {
-            throw new BusinessException(ErrorCode.ROLE_SYSTEM_ROLE_CANNOT_BE_DEACTIVATED);
-        }
-        deactivate();
-    }
+
 }
