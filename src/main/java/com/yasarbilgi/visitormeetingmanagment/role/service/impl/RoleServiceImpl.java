@@ -14,6 +14,7 @@ import com.yasarbilgi.visitormeetingmanagment.role.mapper.RoleMapper;
 import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleRepository;
 import com.yasarbilgi.visitormeetingmanagment.role.service.RoleService;
 import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionCacheService;
 import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
 import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Slf4j
@@ -42,6 +44,7 @@ public class RoleServiceImpl implements RoleService {
     private final UserRepository userRepository;
     private final PermissionResolutionService permissionResolutionService;
     private final CurrentUserProvider currentUserProvider;
+    private final PermissionCacheService permissionCacheService;
 
     /**
      * Belirtilen şirkete ait yeni bir rol oluşturur.
@@ -142,6 +145,8 @@ public class RoleServiceImpl implements RoleService {
                 id,
                 companyId
         );
+
+        invalidateCacheForUsersWithRole(role.getId());
 
         return roleMapper.toResponseDto(role);
     }
@@ -286,6 +291,8 @@ public class RoleServiceImpl implements RoleService {
                 roleId
         );
 
+        invalidateCacheForUsersWithRole(roleId);
+
         return roleMapper.toResponseDto(role);
     }
 
@@ -324,6 +331,8 @@ public class RoleServiceImpl implements RoleService {
                 roleId
         );
 
+        invalidateCacheForUsersWithRole(roleId);
+
         return roleMapper.toResponseDto(role);
     }
 
@@ -352,6 +361,8 @@ public class RoleServiceImpl implements RoleService {
 
         role.deactivate();
 
+        invalidateCacheForUsersWithRole(id);
+
         log.info(
                 "Role deactivated successfully with id: {}",
                 id
@@ -379,6 +390,8 @@ public class RoleServiceImpl implements RoleService {
         );
 
         role.activate();
+
+        invalidateCacheForUsersWithRole(id);
 
         log.info(
                 "Role activated successfully with id: {}",
@@ -585,5 +598,11 @@ public class RoleServiceImpl implements RoleService {
         );
 
         throw new BusinessException(ErrorCode.ROLE_PERMISSION_MANAGEMENT_FORBIDDEN);
+    }
+
+    private void invalidateCacheForUsersWithRole(Long roleId) {
+        List<Long> userIds = userRepository.findUserIdsByRoleId(roleId);
+        userIds.forEach(permissionCacheService::invalidate);
+        log.debug("Invalidated permission cache for {} users with role {}", userIds.size(), roleId);
     }
 }

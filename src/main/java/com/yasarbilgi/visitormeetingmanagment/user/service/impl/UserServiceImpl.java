@@ -11,6 +11,7 @@ import com.yasarbilgi.visitormeetingmanagment.job.repository.JobTitleRepository;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleRepository;
 import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionCacheService;
 import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
 import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
@@ -45,6 +46,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final PermissionResolutionService permissionResolutionService;
     private final CurrentUserProvider currentUserProvider;
+    private final PermissionCacheService permissionCacheService;
 
     @Override
     @Transactional
@@ -193,6 +195,7 @@ public class UserServiceImpl implements UserService {
         enforceAdminHierarchy(companyId, userId);
         User user = findUserOrThrow(companyId, userId);
         user.deactivateIfAllowed();
+        permissionCacheService.invalidate(userId);
     }
 
     @Override
@@ -202,6 +205,8 @@ public class UserServiceImpl implements UserService {
         enforceAdminHierarchy(companyId, userId);
         User user = findUserOrThrow(companyId, userId);
         user.activate();
+        permissionCacheService.invalidate(userId);
+
     }
 
     @Override
@@ -213,6 +218,7 @@ public class UserServiceImpl implements UserService {
         Role role = findRoleOrThrow(companyId, roleId);
         user.assignRole(role);
         log.info("Role assigned successfully");
+        permissionCacheService.invalidate(userId);
         return userMapper.toResponseDto(user);
     }
 
@@ -225,6 +231,7 @@ public class UserServiceImpl implements UserService {
         Role role = findRoleOrThrow(companyId, roleId);
         user.revokeRole(role);
         log.info("Role revoked successfully");
+        permissionCacheService.invalidate(userId);
         return userMapper.toResponseDto(user);
     }
 
@@ -257,6 +264,8 @@ public class UserServiceImpl implements UserService {
         }
         user.promoteToOwner();
 
+        permissionCacheService.invalidate(userId);
+
         log.info("User promoted to owner successfully");
         return userMapper.toResponseDto(user);
     }
@@ -282,6 +291,9 @@ public class UserServiceImpl implements UserService {
         currentOwner.demoteFromOwner();
         newOwner.promoteToOwner();
 
+        permissionCacheService.invalidate(currentOwnerId);
+        permissionCacheService.invalidate(newOwnerId);
+
         log.info("Ownership transferred successfully");
         return userMapper.toResponseDto(newOwner);
     }
@@ -296,10 +308,12 @@ public class UserServiceImpl implements UserService {
                 .ifPresent(currentOwner -> {
                     currentOwner.demoteFromOwner();
                     log.warn("Previous owner {} demoted", currentOwner.getId());
+                    permissionCacheService.invalidate(currentOwner.getId());
                 });
 
         User newOwner = findUserOrThrow(companyId, newOwnerId);
         newOwner.promoteToOwner();
+        permissionCacheService.invalidate(newOwnerId);
 
         log.warn("User {} force-promoted to owner in company {}", newOwnerId, companyId);
         return userMapper.toResponseDto(newOwner);

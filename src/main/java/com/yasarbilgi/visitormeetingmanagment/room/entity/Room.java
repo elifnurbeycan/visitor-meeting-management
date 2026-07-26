@@ -99,7 +99,5 @@ public class Room extends TenantBaseEntity {
         return this.features.contains(feature);
     }
 
-    public void deactivateIfAllowed() {
-        deactivate();
-    }
+
 }
