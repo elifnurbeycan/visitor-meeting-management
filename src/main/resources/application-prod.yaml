@@ -11,3 +11,6 @@ spring:
 
   flyway:
     enabled: true
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
