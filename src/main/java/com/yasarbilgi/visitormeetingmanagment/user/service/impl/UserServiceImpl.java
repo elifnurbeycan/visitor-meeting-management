@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.user.service.impl;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -47,6 +48,7 @@ public class UserServiceImpl implements UserService {
     private final PermissionResolutionService permissionResolutionService;
     private final CurrentUserProvider currentUserProvider;
     private final PermissionCacheService permissionCacheService;
+    private final AuditLogService auditLogService;
 
     @Override
     @Transactional
@@ -219,6 +221,16 @@ public class UserServiceImpl implements UserService {
         user.assignRole(role);
         log.info("Role assigned successfully");
         permissionCacheService.invalidate(userId);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROLE_ASSIGNED",
+                "USER",
+                userId,
+                "Role '" + role.getName() + "' assigned to user " + userId
+        );
+
         return userMapper.toResponseDto(user);
     }
 
@@ -232,6 +244,16 @@ public class UserServiceImpl implements UserService {
         user.revokeRole(role);
         log.info("Role revoked successfully");
         permissionCacheService.invalidate(userId);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROLE_REVOKED",
+                "USER",
+                userId,
+                "Role '" + role.getName() + "' revoked from user " + userId
+        );
+
         return userMapper.toResponseDto(user);
     }
 

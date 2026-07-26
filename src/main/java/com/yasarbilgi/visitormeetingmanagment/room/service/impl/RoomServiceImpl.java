@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.room.service.impl;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -13,6 +14,8 @@ import com.yasarbilgi.visitormeetingmanagment.room.entity.Room;
 import com.yasarbilgi.visitormeetingmanagment.room.mapper.RoomMapper;
 import com.yasarbilgi.visitormeetingmanagment.room.repository.RoomRepository;
 import com.yasarbilgi.visitormeetingmanagment.room.service.RoomService;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,6 +37,8 @@ public class RoomServiceImpl implements RoomService {
     private final RoomMapper roomMapper;
     private final CompanyRepository companyRepository;
     private final FeatureRepository featureRepository;
+    private final AuditLogService auditLogService;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Belirtilen şirket için yeni bir toplantı odası oluşturur.
@@ -78,6 +83,15 @@ public class RoomServiceImpl implements RoomService {
                 "Room created successfully with id: {} for company id: {}",
                 saved.getId(),
                 companyId
+        );
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROOM_CREATED",
+                "ROOM",
+                saved.getId(),
+                "Room '" + saved.getName() + "' created"
         );
 
         return roomMapper.toResponseDto(saved);
@@ -131,6 +145,15 @@ public class RoomServiceImpl implements RoomService {
                 "Room updated successfully with id: {} for company id: {}",
                 id,
                 companyId
+        );
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROOM_UPDATED",
+                "ROOM",
+                room.getId(),
+                "Room '" + room.getName() + "' updated"
         );
 
         return roomMapper.toResponseDto(room);
@@ -359,6 +382,15 @@ public class RoomServiceImpl implements RoomService {
 
         room.deactivate();
 
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROOM_DEACTIVATED",
+                "ROOM",
+                id,
+                "Room deactivated"
+        );
+
         log.info(
                 "Room deactivated successfully with id: {}",
                 id
@@ -386,6 +418,15 @@ public class RoomServiceImpl implements RoomService {
         );
 
         room.activate();
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROOM_ACTIVATED",
+                "ROOM",
+                id,
+                "Room activated"
+        );
 
         log.info(
                 "Room activated successfully with id: {}",
