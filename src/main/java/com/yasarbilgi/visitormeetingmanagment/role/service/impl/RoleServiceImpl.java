@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.role.service.impl;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -45,14 +46,15 @@ public class RoleServiceImpl implements RoleService {
     private final PermissionResolutionService permissionResolutionService;
     private final CurrentUserProvider currentUserProvider;
     private final PermissionCacheService permissionCacheService;
+    private final AuditLogService auditLogService;
 
     /**
      * Belirtilen şirkete ait yeni bir rol oluşturur.
-     *
+
      * Aynı şirket içerisinde aynı isimde başka bir rol bulunamaz.
      * DTO içerisinde permission ID'leri gönderilmişse ilgili izinler bulunarak
      * yeni role atanır.
-     *
+
      * Kullanıcı tarafından oluşturulan roller sistem rolü değildir.
      */
     @Override
@@ -90,6 +92,15 @@ public class RoleServiceImpl implements RoleService {
                 "Role created successfully with id: {} for company id: {}",
                 saved.getId(),
                 companyId
+        );
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROLE_CREATED",
+                "ROLE",
+                saved.getId(),
+                "Role '" + saved.getName() + "' created"
         );
 
         return roleMapper.toResponseDto(saved);
@@ -147,6 +158,16 @@ public class RoleServiceImpl implements RoleService {
         );
 
         invalidateCacheForUsersWithRole(role.getId());
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROLE_UPDATED",
+                "ROLE",
+                role.getId(),
+                "Role '" + role.getName() + "' updated"
+        );
+
 
         return roleMapper.toResponseDto(role);
     }
@@ -293,6 +314,15 @@ public class RoleServiceImpl implements RoleService {
 
         invalidateCacheForUsersWithRole(roleId);
 
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "PERMISSION_ASSIGNED_TO_ROLE",
+                "ROLE",
+                roleId,
+                "Permission '" + permission.getCode() + "' assigned to role '" + role.getName() + "'"
+        );
+
         return roleMapper.toResponseDto(role);
     }
 
@@ -333,14 +363,21 @@ public class RoleServiceImpl implements RoleService {
 
         invalidateCacheForUsersWithRole(roleId);
 
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "PERMISSION_REVOKED_FROM_ROLE",
+                "ROLE",
+                roleId,
+                "Permission '" + permission.getCode() + "' revoked from role '" + role.getName() + "'"
+        );
+
+
         return roleMapper.toResponseDto(role);
     }
 
     /**
      * Bir rolü pasif hale getirir.
-     *
-     * Rol sistem rolüyse Role entity içerisindeki iş kuralı
-     * ROLE_SYSTEM_ROLE_CANNOT_BE_DEACTIVATED hatasını fırlatır.
      */
     @Override
     @Transactional
@@ -362,6 +399,15 @@ public class RoleServiceImpl implements RoleService {
         role.deactivate();
 
         invalidateCacheForUsersWithRole(id);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROLE_DEACTIVATED",
+                "ROLE",
+                id,
+                "Role deactivated"
+        );
 
         log.info(
                 "Role deactivated successfully with id: {}",
@@ -392,6 +438,15 @@ public class RoleServiceImpl implements RoleService {
         role.activate();
 
         invalidateCacheForUsersWithRole(id);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROLE_ACTIVATED",
+                "ROLE",
+                id,
+                "Role activated"
+        );
 
         log.info(
                 "Role activated successfully with id: {}",

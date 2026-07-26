@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.company.service.impl;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.dto.request.CompanyRequestDto;
@@ -14,6 +15,8 @@ import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.RoleTemplate;
 import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleRepository;
 import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleTemplateRepository;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import com.yasarbilgi.visitormeetingmanagment.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,8 @@ public class CompanyServiceImpl implements CompanyService {
     private final PasswordEncoder passwordEncoder;
     private final RoleTemplateRepository roleTemplateRepository;
     private final RoleRepository roleRepository;
+    private final AuditLogService auditLogService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     @Transactional
@@ -211,6 +216,15 @@ public class CompanyServiceImpl implements CompanyService {
             roleRepository.save(role);
         }
 
+        auditLogService.log(
+                id,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "COMPANY_APPROVED",
+                "COMPANY",
+                id,
+                "Company '" + company.getName() + "' approved by SuperAdmin"
+        );
+
         log.info("Company {} approved, {} default roles created", id, templates.size());
         return companyMapper.toResponseDto(company);
     }
@@ -228,6 +242,16 @@ public class CompanyServiceImpl implements CompanyService {
         company.reject(reason);
 
         log.info("Company rejected successfully with id: {}", id);
+
+        auditLogService.log(
+                id,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "COMPANY_REJECTED",
+                "COMPANY",
+                id,
+                "Company '" + company.getName() + "' rejected: " + reason
+        );
+
         return companyMapper.toResponseDto(company);
     }
 
