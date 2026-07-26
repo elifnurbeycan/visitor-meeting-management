@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -75,5 +76,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByCompanyId(Long companyId);
 
     long countByCompanyIdAndActive(Long companyId, boolean active);
+
+    @Query("SELECT u.id FROM User u JOIN u.roles r WHERE r.id = :roleId")
+    List<Long> findUserIdsByRoleId(@Param("roleId") Long roleId);
 
 }

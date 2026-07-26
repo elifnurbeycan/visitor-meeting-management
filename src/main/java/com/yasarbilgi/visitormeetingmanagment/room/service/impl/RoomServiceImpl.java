@@ -37,7 +37,7 @@ public class RoomServiceImpl implements RoomService {
 
     /**
      * Belirtilen şirket için yeni bir toplantı odası oluşturur.
-     *
+
      * Aynı şirket içerisinde aynı isimde başka bir oda bulunamaz.
      * DTO içerisinde feature ID'leri gönderilmişse özellikler bulunarak
      * yeni odaya atanır.
@@ -61,8 +61,7 @@ public class RoomServiceImpl implements RoomService {
                 dto.name()
         );
 
-        Set<Feature> features =
-                findFeaturesOrThrow(dto.featureIds());
+        Set<Feature> features = findFeaturesOrThrow(companyId, dto.featureIds());
 
         Room room = Room.builder()
                 .company(company)
@@ -86,7 +85,7 @@ public class RoomServiceImpl implements RoomService {
 
     /**
      * Belirtilen şirkete ait mevcut bir toplantı odasını günceller.
-     *
+
      * Oda adı değişmişse aynı şirket içerisinde benzersizlik kontrolü yapılır.
      * Feature listesi DTO'dan gelen güncel değerlerle değiştirilir.
      */
@@ -116,8 +115,7 @@ public class RoomServiceImpl implements RoomService {
             );
         }
 
-        Set<Feature> requestedFeatures =
-                findFeaturesOrThrow(dto.featureIds());
+        Set<Feature> requestedFeatures = findFeaturesOrThrow(companyId, dto.featureIds());
 
         room.rename(dto.name());
         room.updateLocation(dto.location());
@@ -291,8 +289,7 @@ public class RoomServiceImpl implements RoomService {
                 roomId
         );
 
-        Feature feature =
-                findFeatureOrThrow(featureId);
+        Feature feature = findFeatureOrThrow(companyId, featureId);
 
         room.addFeature(feature);
 
@@ -327,8 +324,7 @@ public class RoomServiceImpl implements RoomService {
                 roomId
         );
 
-        Feature feature =
-                findFeatureOrThrow(featureId);
+        Feature feature = findFeatureOrThrow(companyId, featureId);
 
         room.removeFeature(feature);
 
@@ -361,7 +357,7 @@ public class RoomServiceImpl implements RoomService {
                 id
         );
 
-        room.deactivateIfAllowed();
+        room.deactivate();
 
         log.info(
                 "Room deactivated successfully with id: {}",
@@ -445,13 +441,14 @@ public class RoomServiceImpl implements RoomService {
     /**
      * ID bilgisine göre oda özelliğini bulur.
      */
-    private Feature findFeatureOrThrow(Long featureId) {
+    private Feature findFeatureOrThrow(Long companyId, Long featureId) {
         return featureRepository
                 .findById(featureId)
+                .filter(feature -> feature.getCompany().getId().equals(companyId))
                 .orElseThrow(() -> {
                     log.warn(
-                            "Feature not found with id: {}",
-                            featureId
+                            "Feature not found with id: {} for company id: {}",
+                            featureId, companyId
                     );
 
                     return new BusinessException(
@@ -462,33 +459,30 @@ public class RoomServiceImpl implements RoomService {
 
     /**
      * Gönderilen ID listesindeki bütün özellikleri getirir.
-     *
+
      * ID listesi boşsa boş Set döndürür.
      * Gönderilen ID sayısıyla bulunan özellik sayısı farklıysa
      * en az bir özellik bulunamamış demektir.
      */
     private Set<Feature> findFeaturesOrThrow(
+            Long companyId,
             Set<Long> featureIds
     ) {
         if (featureIds == null || featureIds.isEmpty()) {
             return Collections.emptySet();
         }
 
-        Set<Feature> features =
-                new HashSet<>(
-                        featureRepository.findAllById(featureIds)
-                );
-
-        if (features.size() != featureIds.size()) {
-            log.warn(
-                    "One or more features could not be found. Requested ids: {}",
-                    featureIds
-            );
-
-            throw new BusinessException(
-                    ErrorCode.FEATURE_NOT_FOUND
-            );
-        }
+        Set<Feature> features = featureIds.stream()
+                .map(id -> featureRepository.findById(id)
+                        .filter(feature -> feature.getCompany().getId().equals(companyId))
+                        .orElseThrow(() -> {
+                            log.warn(
+                                    "Feature not found with id: {} for company id: {}",
+                                    id, companyId
+                            );
+                            return new BusinessException(ErrorCode.FEATURE_NOT_FOUND);
+                        }))
+                .collect(java.util.stream.Collectors.toSet());
 
         return features;
     }
@@ -534,7 +528,7 @@ public class RoomServiceImpl implements RoomService {
 
     /**
      * Odanın mevcut özelliklerini DTO'dan gelen özellik listesiyle eşitler.
-     *
+
      * DTO'da artık bulunmayan özellikler kaldırılır,
      * yeni gönderilen özellikler eklenir.
      */

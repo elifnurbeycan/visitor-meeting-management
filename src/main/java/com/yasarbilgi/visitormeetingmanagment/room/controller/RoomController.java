@@ -12,14 +12,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * Room kaynağı için REST endpoint'leri.
  * URL şeması: /api/v1/rooms
- *
- * Security ve tenant context henüz eklenmediği için
- * companyId request parametresi olarak alınmaktadır.
+
+ * companyId query parametresi, TenantPathGuardInterceptor tarafından
+ * otomatik olarak isteği yapan kullanıcının kendi companyId'siyle
+ * karşılaştırılır.
  */
 @RestController
 @RequestMapping("/api/v1/rooms")
@@ -32,6 +34,7 @@ public class RoomController {
      * Belirtilen şirket için yeni bir toplantı odası oluşturur.
      * Başarılı olursa 201 Created döner.
      */
+    @PreAuthorize("hasAnyAuthority('ROOM_CREATE')")
     @PostMapping
     public ResponseEntity<ApiResponse<RoomResponseDto>> create(
             @RequestParam Long companyId,
@@ -50,6 +53,7 @@ public class RoomController {
     /**
      * Var olan bir toplantı odasını günceller.
      */
+    @PreAuthorize("hasAnyAuthority('ROOM_UPDATE')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<RoomResponseDto>> update(
             @PathVariable Long id,
@@ -70,6 +74,7 @@ public class RoomController {
     /**
      * ID ve şirket bilgisine göre tek bir toplantı odası getirir.
      */
+    @PreAuthorize("hasAnyAuthority('ROOM_VIEW')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<RoomResponseDto>> getById(
             @PathVariable Long id,
@@ -87,6 +92,7 @@ public class RoomController {
      * Belirtilen şirkete ait bütün toplantı odalarını
      * sayfalanmış şekilde getirir.
      */
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<RoomResponseDto>>> getAll(
             @RequestParam Long companyId,
@@ -105,6 +111,7 @@ public class RoomController {
     /**
      * Aktif veya pasif odaları sayfalanmış şekilde listeler.
      */
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     @GetMapping("/by-active")
     public ResponseEntity<ApiResponse<PageResponse<RoomResponseDto>>> getAllByActive(
             @RequestParam Long companyId,
@@ -130,6 +137,7 @@ public class RoomController {
      *
      * active parametresi verilmezse yalnızca aktif odalar getirilir.
      */
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     @GetMapping("/by-capacity")
     public ResponseEntity<ApiResponse<PageResponse<RoomResponseDto>>> getAllByMinimumCapacity(
             @RequestParam Long companyId,
@@ -156,6 +164,7 @@ public class RoomController {
      * Oda adı, konumu veya açıklaması üzerinde
      * anahtar kelime araması yapar.
      */
+    @PreAuthorize("hasAuthority('ROOM_VIEW')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<RoomResponseDto>>> search(
             @RequestParam Long companyId,
@@ -181,6 +190,7 @@ public class RoomController {
     /**
      * Bir toplantı odasına yeni bir özellik ekler.
      */
+    @PreAuthorize("hasAuthority('ROOM_MANAGE_FEATURES')")
     @PatchMapping("/{roomId}/features/{featureId}")
     public ResponseEntity<ApiResponse<RoomResponseDto>> addFeature(
             @PathVariable Long roomId,
@@ -205,6 +215,7 @@ public class RoomController {
     /**
      * Bir toplantı odasından özellik kaldırır.
      */
+    @PreAuthorize("hasAuthority('ROOM_MANAGE_FEATURES')")
     @DeleteMapping("/{roomId}/features/{featureId}")
     public ResponseEntity<ApiResponse<RoomResponseDto>> removeFeature(
             @PathVariable Long roomId,
@@ -230,6 +241,7 @@ public class RoomController {
      * Bir toplantı odasını pasif hâle getirir.
      * Kayıt veritabanından silinmez.
      */
+    @PreAuthorize("hasAuthority('ROOM_DEACTIVATE')")
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<ApiResponse<Void>> deactivate(
             @PathVariable Long id,
@@ -247,6 +259,7 @@ public class RoomController {
     /**
      * Pasif durumdaki bir toplantı odasını tekrar aktif hâle getirir.
      */
+    @PreAuthorize("hasAuthority('ROOM_ACTIVATE')")
     @PatchMapping("/{id}/activate")
     public ResponseEntity<ApiResponse<Void>> activate(
             @PathVariable Long id,
