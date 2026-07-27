@@ -37,4 +37,8 @@ public interface ReservationService {
 
     /** Toplantıyı düzenleyen kişiye göre rezervasyonları listeler. */
     List<ReservationResponseDto> getAllByOrganizer(Long companyId, Long organizerId);
+
+    ReservationResponseDto addParticipant(Long companyId, Long organizerId, Long reservationId, Long userId);
+
+    ReservationResponseDto removeParticipant(Long companyId, Long organizerId, Long reservationId, Long userId);
 }

@@ -117,4 +117,28 @@ public class ReservationController {
         List<ReservationResponseDto> list = reservationService.getAllByOrganizer(currentUser.companyId(), organizerId);
         return ResponseEntity.ok(ApiResponse.success(list));
     }
+
+    @PatchMapping("/{id}/participants/{userId}")
+    public ResponseEntity<ApiResponse<ReservationResponseDto>> addParticipant(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long id,
+            @PathVariable Long userId
+    ) {
+        ReservationResponseDto updated = reservationService.addParticipant(
+                currentUser.companyId(), currentUser.userId(), id, userId
+        );
+        return ResponseEntity.ok(ApiResponse.success("Participant added successfully", updated));
+    }
+
+    @DeleteMapping("/{id}/participants/{userId}")
+    public ResponseEntity<ApiResponse<ReservationResponseDto>> removeParticipant(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long id,
+            @PathVariable Long userId
+    ) {
+        ReservationResponseDto updated = reservationService.removeParticipant(
+                currentUser.companyId(), currentUser.userId(), id, userId
+        );
+        return ResponseEntity.ok(ApiResponse.success("Participant removed successfully", updated));
+    }
 }
