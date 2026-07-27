@@ -1,6 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.reservation.controller;
 
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
+import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
 import com.yasarbilgi.visitormeetingmanagment.reservation.dto.request.ReservationRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.reservation.dto.request.UpdateReservationRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.reservation.dto.response.ReservationResponseDto;
@@ -8,12 +9,16 @@ import com.yasarbilgi.visitormeetingmanagment.reservation.service.ReservationSer
 import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 /**
  * Toplantı Odası Rezervasyonları REST API denetleyici sınıfı.
@@ -29,6 +34,7 @@ public class ReservationController {
 
     private final ReservationService reservationService;
 
+    @PreAuthorize("hasAuthority('RESERVATION_CREATE')")
     @PostMapping
     public ResponseEntity<ApiResponse<ReservationResponseDto>> create(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
@@ -42,6 +48,7 @@ public class ReservationController {
                 .body(ApiResponse.success("Reservation request created successfully", created));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_UPDATE_OWN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<ReservationResponseDto>> update(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
@@ -54,6 +61,7 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.success("Reservation updated successfully", updated));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_APPROVE')")
     @PatchMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<ReservationResponseDto>> approve(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
@@ -63,6 +71,7 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.success("Reservation approved successfully", approved));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_REJECT')")
     @PatchMapping("/{id}/reject")
     public ResponseEntity<ApiResponse<ReservationResponseDto>> reject(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
@@ -73,6 +82,7 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.success("Reservation request rejected", rejected));
     }
 
+    @PreAuthorize("hasAnyAuthority('RESERVATION_CANCEL_OWN', 'RESERVATION_CANCEL_ALL')")
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<Void>> cancel(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
@@ -83,6 +93,7 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.success("Reservation cancelled successfully"));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_VIEW_DETAILS')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<ReservationResponseDto>> getById(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
@@ -92,32 +103,59 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.success(reservation));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_VIEW_ALL')")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<ReservationResponseDto>>> getAll(
-            @AuthenticationPrincipal AuthenticatedUser currentUser
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponseDto>>> getAll(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PageableDefault(size = 20, sort = "startTime") Pageable pageable
     ) {
-        List<ReservationResponseDto> list = reservationService.getAll(currentUser.companyId());
-        return ResponseEntity.ok(ApiResponse.success(list));
+        PageResponse<ReservationResponseDto> page = PageResponse.of(
+                reservationService.getAll(currentUser.companyId(), pageable)
+        );
+        return ResponseEntity.ok(ApiResponse.success(page));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_FILTER_BY_ROOM')")
     @GetMapping("/by-room/{roomId}")
-    public ResponseEntity<ApiResponse<List<ReservationResponseDto>>> getAllByRoom(
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponseDto>>> getAllByRoom(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @PathVariable Long roomId
+            @PathVariable Long roomId,
+            @PageableDefault(size = 20, sort = "startTime") Pageable pageable
     ) {
-        List<ReservationResponseDto> list = reservationService.getAllByRoom(currentUser.companyId(), roomId);
-        return ResponseEntity.ok(ApiResponse.success(list));
+        PageResponse<ReservationResponseDto> page = PageResponse.of(
+                reservationService.getAllByRoom(currentUser.companyId(), roomId, pageable)
+        );
+        return ResponseEntity.ok(ApiResponse.success(page));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_VIEW_ALL')")
     @GetMapping("/by-organizer/{organizerId}")
-    public ResponseEntity<ApiResponse<List<ReservationResponseDto>>> getAllByOrganizer(
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponseDto>>> getAllByOrganizer(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
-            @PathVariable Long organizerId
+            @PathVariable Long organizerId,
+            @PageableDefault(size = 20, sort = "startTime") Pageable pageable
     ) {
-        List<ReservationResponseDto> list = reservationService.getAllByOrganizer(currentUser.companyId(), organizerId);
-        return ResponseEntity.ok(ApiResponse.success(list));
+        PageResponse<ReservationResponseDto> page = PageResponse.of(
+                reservationService.getAllByOrganizer(currentUser.companyId(), organizerId, pageable)
+        );
+        return ResponseEntity.ok(ApiResponse.success(page));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_FILTER_BY_DATE')")
+    @GetMapping("/calendar")
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponseDto>>> getAllByDateRange(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @PageableDefault(size = 50, sort = "startTime") Pageable pageable
+    ) {
+        PageResponse<ReservationResponseDto> page = PageResponse.of(
+                reservationService.getAllByDateRange(currentUser.companyId(), from, to, pageable)
+        );
+        return ResponseEntity.ok(ApiResponse.success(page));
+    }
+
+    @PreAuthorize("hasAuthority('RESERVATION_UPDATE_OWN')")
     @PatchMapping("/{id}/participants/{userId}")
     public ResponseEntity<ApiResponse<ReservationResponseDto>> addParticipant(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
@@ -130,6 +168,7 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.success("Participant added successfully", updated));
     }
 
+    @PreAuthorize("hasAuthority('RESERVATION_UPDATE_OWN')")
     @DeleteMapping("/{id}/participants/{userId}")
     public ResponseEntity<ApiResponse<ReservationResponseDto>> removeParticipant(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
