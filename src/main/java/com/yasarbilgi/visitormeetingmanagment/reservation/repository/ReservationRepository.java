@@ -3,6 +3,8 @@ package com.yasarbilgi.visitormeetingmanagment.reservation.repository;
 import com.yasarbilgi.visitormeetingmanagment.reservation.entity.Reservation;
 import com.yasarbilgi.visitormeetingmanagment.reservation.enums.ReservationStatus;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -21,18 +23,21 @@ public interface ReservationRepository
             Long companyId
     );
 
-    List<Reservation> findAllByCompanyId(
-            Long companyId
+    Page<Reservation> findAllByCompanyId(
+            Long companyId,
+            Pageable pageable
     );
 
-    List<Reservation> findAllByRoomIdAndCompanyId(
+    Page<Reservation> findAllByRoomIdAndCompanyId(
             Long roomId,
-            Long companyId
+            Long companyId,
+            Pageable pageable
     );
 
-    List<Reservation> findAllByOrganizerIdAndCompanyId(
+    Page<Reservation> findAllByOrganizerIdAndCompanyId(
             Long organizerId,
-            Long companyId
+            Long companyId,
+            Pageable pageable
     );
 
     boolean existsByRoomIdAndCompanyIdAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
@@ -77,5 +82,12 @@ public interface ReservationRepository
         ORDER BY r.id
         """)
     List<Reservation> findExpiredPendingForUpdate(@Param("now") Instant now);
+
+    Page<Reservation> findAllByCompanyIdAndStartTimeLessThanAndEndTimeGreaterThan(
+            Long companyId,
+            LocalDateTime rangeEnd,
+            LocalDateTime rangeStart,
+            Pageable pageable
+    );
 
 }
