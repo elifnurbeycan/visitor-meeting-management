@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,6 +25,7 @@ public class DepartmentController {
     private final UserService userService;
 
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_CREATE')")
     @PostMapping
     public ResponseEntity<ApiResponse<DepartmentResponseDto>> create(
             @PathVariable Long companyId,
@@ -34,6 +36,7 @@ public class DepartmentController {
                 .body(ApiResponse.success("Department created successfully", created));
     }
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_UPDATE')")
     @PutMapping("/{departmentId}")
     public ResponseEntity<ApiResponse<DepartmentResponseDto>> update(
             @PathVariable Long companyId,
@@ -44,6 +47,7 @@ public class DepartmentController {
         return ResponseEntity.ok(ApiResponse.success("Department updated successfully", updated));
     }
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
     @GetMapping("/{departmentId}")
     public ResponseEntity<ApiResponse<DepartmentResponseDto>> getById(
             @PathVariable Long companyId,
@@ -53,6 +57,7 @@ public class DepartmentController {
         return ResponseEntity.ok(ApiResponse.success(department));
     }
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<DepartmentResponseDto>>> getAll(
             @PathVariable Long companyId,
@@ -63,6 +68,7 @@ public class DepartmentController {
         return ResponseEntity.ok(ApiResponse.success(departments));
     }
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
     @GetMapping("/by-active")
     public ResponseEntity<ApiResponse<PageResponse<DepartmentResponseDto>>> getAllByActive(
             @PathVariable Long companyId,
@@ -74,6 +80,7 @@ public class DepartmentController {
         return ResponseEntity.ok(ApiResponse.success(departments));
     }
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<DepartmentResponseDto>>> search(
             @PathVariable Long companyId,
@@ -86,6 +93,7 @@ public class DepartmentController {
         return ResponseEntity.ok(ApiResponse.success(departments));
     }
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_DEACTIVATE')")
     @PatchMapping("/{departmentId}/deactivate")
     public ResponseEntity<ApiResponse<Void>> deactivate(
             @PathVariable Long companyId,
@@ -95,6 +103,7 @@ public class DepartmentController {
         return ResponseEntity.ok(ApiResponse.success("Department deactivated successfully"));
     }
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_ACTIVATE')")
     @PatchMapping("/{departmentId}/activate")
     public ResponseEntity<ApiResponse<Void>> activate(
             @PathVariable Long companyId,
@@ -105,6 +114,7 @@ public class DepartmentController {
     }
 
 
+    @PreAuthorize("hasAuthority('DEPARTMENT_VIEW')")
     @GetMapping("/{departmentId}/users")
     public ResponseEntity<ApiResponse<PageResponse<UserResponseDto>>> getUsers(
             @PathVariable Long companyId,

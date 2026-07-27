@@ -48,6 +48,16 @@ public enum PermissionCode {
     JOB_TITLE_ASSIGN_DEFAULT_ROLE,
     JOB_TITLE_REMOVE_DEFAULT_ROLE,
 
+    // ----- Department Management -----
+
+    DEPARTMENT_VIEW,
+    DEPARTMENT_CREATE,
+    DEPARTMENT_UPDATE,
+    DEPARTMENT_DELETE,
+    DEPARTMENT_ACTIVATE,
+    DEPARTMENT_DEACTIVATE,
+    DEPARTMENT_MANAGE,
+
     // ----- Room Management -----
     ROOM_CREATE,
     ROOM_VIEW,
