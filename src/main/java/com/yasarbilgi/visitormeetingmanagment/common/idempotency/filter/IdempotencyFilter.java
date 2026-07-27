@@ -21,9 +21,11 @@ import java.util.Optional;
  * İstemci, bir POST isteğine "Idempotency-Key" header'ı (benzersiz bir UUID)
  * eklerse, bu filtre aynı anahtarla gelen tekrar istekleri fark eder ve
  * işlemi tekrar çalıştırmadan, önceden üretilmiş aynı yanıtı geri döner.
-
- * Header eklenmemiş isteklerde bu filtre tamamen etkisizdir — sadece
- * idempotency isteyen (ve bunu açıkça talep eden) istemciler için devrededir.
+ *
+ * Bu mekanizma sadece açıkça belirlenmiş, idempotency gerektiren endpoint'lerde
+ * devrededir (şu an sadece rezervasyon oluşturma) — böylece aynı anahtar başka
+ * bir endpoint'e (örn. login) yanlışlıkla/kazayla gönderilirse, o isteği
+ * etkilemez, sadece normal şekilde işlenir.
  */
 @Slf4j
 @Component
@@ -31,6 +33,7 @@ import java.util.Optional;
 public class IdempotencyFilter extends OncePerRequestFilter {
 
     private static final String IDEMPOTENCY_HEADER = "Idempotency-Key";
+    private static final String ELIGIBLE_PATH = "/api/v1/reservations";
 
     private final IdempotencyKeyRepository idempotencyKeyRepository;
 
@@ -42,8 +45,11 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String idempotencyKey = request.getHeader(IDEMPOTENCY_HEADER);
+        boolean isEligiblePath = ELIGIBLE_PATH.equals(request.getRequestURI());
 
-        if (idempotencyKey == null || idempotencyKey.isBlank() || !"POST".equalsIgnoreCase(request.getMethod())) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()
+                || !"POST".equalsIgnoreCase(request.getMethod())
+                || !isEligiblePath) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -69,7 +75,6 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
         wrappedResponse.copyBodyToResponse();
     }
-
 
     protected void saveIdempotencyRecord(String idempotencyKey, int status, ContentCachingResponseWrapper wrappedResponse) {
         String bodyString = new String(wrappedResponse.getContentAsByteArray(), StandardCharsets.UTF_8);

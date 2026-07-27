@@ -1,0 +1,16 @@
+INSERT INTO permissions (code, name, description, category, is_system_permission, display_order, created_at, updated_at,
+                         version, active)
+VALUES ('DEPARTMENT_VIEW', 'Departman Görüntüleme', 'Departman bilgilerini görüntüleme yetkisi',
+        'DEPARTMENT_MANAGEMENT', true, 150, now(), now(), 0, true),
+       ('DEPARTMENT_CREATE', 'Departman Oluşturma', 'Yeni departman oluşturma yetkisi', 'DEPARTMENT_MANAGEMENT', true,
+        151, now(), now(), 0, true),
+       ('DEPARTMENT_UPDATE', 'Departman Güncelleme', 'Departman bilgilerini güncelleme yetkisi',
+        'DEPARTMENT_MANAGEMENT', true, 152, now(), now(), 0, true),
+       ('DEPARTMENT_DELETE', 'Departman Silme', 'Departman silme yetkisi', 'DEPARTMENT_MANAGEMENT', true, 153, now(),
+        now(), 0, true),
+       ('DEPARTMENT_ACTIVATE', 'Departman Aktifleştirme', 'Departmanı aktif hale getirme yetkisi',
+        'DEPARTMENT_MANAGEMENT', true, 154, now(), now(), 0, true),
+       ('DEPARTMENT_DEACTIVATE', 'Departman Pasifleştirme', 'Departmanı pasif hale getirme yetkisi',
+        'DEPARTMENT_MANAGEMENT', true, 155, now(), now(), 0, true),
+       ('DEPARTMENT_MANAGE', 'Departman Yönetimi', 'Genel departman yönetim yetkisi', 'DEPARTMENT_MANAGEMENT', true,
+        156, now(), now(), 0, true);
