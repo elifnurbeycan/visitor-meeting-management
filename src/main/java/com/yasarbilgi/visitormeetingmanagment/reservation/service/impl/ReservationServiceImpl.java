@@ -11,6 +11,7 @@ import com.yasarbilgi.visitormeetingmanagment.reservation.entity.Reservation;
 import com.yasarbilgi.visitormeetingmanagment.reservation.enums.ReservationStatus;
 import com.yasarbilgi.visitormeetingmanagment.reservation.mapper.ReservationMapper;
 import com.yasarbilgi.visitormeetingmanagment.reservation.repository.ReservationRepository;
+import com.yasarbilgi.visitormeetingmanagment.reservation.service.ReservationNotificationService;
 import com.yasarbilgi.visitormeetingmanagment.reservation.service.ReservationService;
 import com.yasarbilgi.visitormeetingmanagment.room.entity.Room;
 import com.yasarbilgi.visitormeetingmanagment.room.repository.RoomRepository;
@@ -49,6 +50,7 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationMapper reservationMapper;
     private final CurrentUserProvider currentUserProvider;
     private final PermissionResolutionService permissionResolutionService;
+    private final ReservationNotificationService reservationNotificationService;
 
     private static final List<ReservationStatus> ACTIVE_CONFLICT_STATUSES =
             List.of(ReservationStatus.PENDING_APPROVAL, ReservationStatus.ACTIVE);
@@ -191,6 +193,16 @@ public class ReservationServiceImpl implements ReservationService {
                     autoRejected.size(), target.getRoom().getId());
         }
 
+        reservationNotificationService.notifyApproval(lockedTarget);
+
+        autoRejected.forEach(rejected ->
+                reservationNotificationService.notifyOrganizerOnly(
+                        rejected,
+                        "Rezervasyon Talebiniz Reddedildi",
+                        "'" + rejected.getTitle() + "' başlıklı talebiniz, aynı saatte başka bir talep onaylandığı için otomatik olarak reddedildi."
+                )
+        );
+
         return reservationMapper.toResponseDto(lockedTarget);
     }
 
@@ -203,6 +215,13 @@ public class ReservationServiceImpl implements ReservationService {
         log.info("Rejecting reservation id: {}, reason: {}", id, reason);
         Reservation reservation = findReservationOrThrow(id, companyId);
         reservation.reject(reason);
+
+        reservationNotificationService.notifyOrganizerOnly(
+                reservation,
+                "Rezervasyon Talebiniz Reddedildi",
+                "'" + reservation.getTitle() + "' başlıklı talebiniz reddedildi. Sebep: " + reason
+        );
+
         return reservationMapper.toResponseDto(reservation);
     }
 
@@ -225,7 +244,19 @@ public class ReservationServiceImpl implements ReservationService {
             throw new BusinessException(ErrorCode.RESERVATION_ACCESS_DENIED);
         }
 
+        boolean wasActive = reservation.getStatus() == ReservationStatus.ACTIVE;
+
         reservation.cancel(reason);
+
+        if (wasActive) {
+            reservationNotificationService.notifyCancellation(reservation);
+        } else {
+            reservationNotificationService.notifyOrganizerOnly(
+                    reservation,
+                    "Rezervasyon Talebiniz İptal Edildi",
+                    "'" + reservation.getTitle() + "' başlıklı talebiniz, onaylanmadan önce iptal edildi."
+            );
+        }
     }
 
     @Override
@@ -252,6 +283,52 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationRepository.findAllByOrganizerIdAndCompanyId(organizerId, companyId).stream()
                 .map(reservationMapper::toResponseDto)
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public ReservationResponseDto addParticipant(Long companyId, Long organizerId, Long reservationId, Long userId) {
+        log.info("Adding participant {} to reservation {} by user {}", userId, reservationId, organizerId);
+
+        Reservation reservation = findReservationOrThrow(reservationId, companyId);
+
+        if (!reservation.getOrganizer().getId().equals(organizerId)) {
+            throw new BusinessException(ErrorCode.RESERVATION_ACCESS_DENIED);
+        }
+
+        User newParticipant = findUserAndValidateTenant(userId, companyId);
+        reservation.addParticipant(newParticipant);
+
+        if (reservation.getStatus() == ReservationStatus.ACTIVE) {
+            reservationNotificationService.notifyParticipantAdded(reservation, newParticipant);
+        }
+
+        if (reservation.exceedsRoomCapacity()) {
+            log.warn("Reservation {} exceeds room capacity after adding participant", reservationId);
+        }
+
+        return reservationMapper.toResponseDto(reservation);
+    }
+
+    @Override
+    @Transactional
+    public ReservationResponseDto removeParticipant(Long companyId, Long organizerId, Long reservationId, Long userId) {
+        log.info("Removing participant {} from reservation {} by user {}", userId, reservationId, organizerId);
+
+        Reservation reservation = findReservationOrThrow(reservationId, companyId);
+
+        if (!reservation.getOrganizer().getId().equals(organizerId)) {
+            throw new BusinessException(ErrorCode.RESERVATION_ACCESS_DENIED);
+        }
+
+        User participant = findUserAndValidateTenant(userId, companyId);
+        reservation.removeParticipant(participant);
+
+        if (reservation.getStatus() == ReservationStatus.ACTIVE) {
+            reservationNotificationService.notifyParticipantRemoved(reservation, participant);
+        }
+
+        return reservationMapper.toResponseDto(reservation);
     }
 
     // ----- Yardımcı Metotlar -----

@@ -3,6 +3,7 @@ package com.yasarbilgi.visitormeetingmanagment.reservation.scheduler;
 import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.reservation.entity.Reservation;
 import com.yasarbilgi.visitormeetingmanagment.reservation.repository.ReservationRepository;
+import com.yasarbilgi.visitormeetingmanagment.reservation.service.ReservationNotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -29,6 +30,7 @@ public class ReservationExpiryScheduler {
 
     private final ReservationRepository reservationRepository;
     private final AuditLogService auditLogService;
+    private final ReservationNotificationService reservationNotificationService;
 
     @Scheduled(fixedRate = 15, timeUnit = TimeUnit.MINUTES)
     @Transactional
@@ -45,6 +47,12 @@ public class ReservationExpiryScheduler {
                     "RESERVATION",
                     reservation.getId(),
                     "Reservation '" + reservation.getTitle() + "' expired due to no approval action"
+            );
+
+            reservationNotificationService.notifyOrganizerOnly(
+                    reservation,
+                    "Rezervasyon Talebinizin Süresi Doldu",
+                    "'" + reservation.getTitle() + "' başlıklı talebiniz, onay süresi içinde yanıtlanmadığı için süresi dolmuş sayıldı."
             );
 
             log.info("Reservation {} expired due to approval deadline", reservation.getId());
