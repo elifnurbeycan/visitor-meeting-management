@@ -14,6 +14,9 @@ import com.yasarbilgi.visitormeetingmanagment.reservation.repository.Reservation
 import com.yasarbilgi.visitormeetingmanagment.reservation.service.ReservationService;
 import com.yasarbilgi.visitormeetingmanagment.room.entity.Room;
 import com.yasarbilgi.visitormeetingmanagment.room.repository.RoomRepository;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import com.yasarbilgi.visitormeetingmanagment.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +24,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * ReservationService arayüzünün iş mantığı implementasyon sınıfı.
@@ -37,8 +45,13 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final CompanyRepository companyRepository;
     private final RoomRepository roomRepository;
-    private final UserRepository userRepository; // Arkadaşının yazacağı repository
+    private final UserRepository userRepository;
     private final ReservationMapper reservationMapper;
+    private final CurrentUserProvider currentUserProvider;
+    private final PermissionResolutionService permissionResolutionService;
+
+    private static final List<ReservationStatus> ACTIVE_CONFLICT_STATUSES =
+            List.of(ReservationStatus.PENDING_APPROVAL, ReservationStatus.ACTIVE);
 
     /**
      * Yeni bir toplantı odası rezervasyonu oluşturur.
@@ -55,27 +68,33 @@ public class ReservationServiceImpl implements ReservationService {
 
         validateTimeRange(dto.startTime(), dto.endTime());
 
-        if (dto.participantCount() > room.getCapacity()) {
-            throw new BusinessException(ErrorCode.RESERVATION_EXCEEDS_ROOM_CAPACITY);
-        }
+        Set<User> participants = resolveParticipants(companyId, dto.participantIds());
 
-        // Çakışma Kontrolü: Aynı saatte reddedilmemiş (Rejected) veya iptal edilmemiş başka aktif rezervasyon var mı?
+        // Çakışma Kontrolü: aynı saatte reddedilmemiş, iptal edilmemiş veya süresi
+        // geçmemiş başka bir rezervasyon var mı?
         boolean hasConflict = reservationRepository
-                .existsByRoomIdAndCompanyIdAndStatusNotAndStartTimeLessThanAndEndTimeGreaterThan(
-                        dto.roomId(), companyId, ReservationStatus.REJECTED, dto.endTime(), dto.startTime()
+                .existsByRoomIdAndCompanyIdAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
+                        dto.roomId(), companyId, ACTIVE_CONFLICT_STATUSES, dto.endTime(), dto.startTime()
                 );
 
         if (hasConflict) {
             throw new BusinessException(ErrorCode.RESERVATION_CONFLICT);
         }
 
+        Instant deadlineCandidate = Instant.now().plus(24, ChronoUnit.HOURS);
+        Instant startTimeAsInstant = dto.startTime().atZone(ZoneId.systemDefault()).toInstant();
+        Instant approvalDeadline = deadlineCandidate.isBefore(startTimeAsInstant)
+                ? deadlineCandidate
+                : startTimeAsInstant;
+
         Reservation reservation = Reservation.builder()
                 .title(dto.title())
                 .description(dto.description())
                 .startTime(dto.startTime())
                 .endTime(dto.endTime())
-                .participantCount(dto.participantCount())
+                .participants(participants)
                 .status(ReservationStatus.PENDING_APPROVAL)
+                .approvalDeadline(approvalDeadline)
                 .room(room)
                 .organizer(organizer)
                 .company(company)
@@ -84,6 +103,12 @@ public class ReservationServiceImpl implements ReservationService {
 
         Reservation saved = reservationRepository.save(reservation);
         log.info("Reservation created with id: {}", saved.getId());
+
+        if (saved.exceedsRoomCapacity()) {
+            log.warn("Reservation {} exceeds room capacity (participants: {}, capacity: {})",
+                    saved.getId(), saved.getParticipants().size(), room.getCapacity());
+        }
+
         return reservationMapper.toResponseDto(saved);
     }
 
@@ -97,16 +122,29 @@ public class ReservationServiceImpl implements ReservationService {
         log.info("Updating reservation id: {} by user: {}", id, organizerId);
 
         Reservation reservation = findReservationOrThrow(id, companyId);
-        Room newRoom = findRoomAndValidateTenant(dto.roomId(), companyId);
 
         if (!reservation.getOrganizer().getId().equals(organizerId)) {
             throw new BusinessException(ErrorCode.RESERVATION_ACCESS_DENIED);
         }
 
+        Room newRoom = findRoomAndValidateTenant(dto.roomId(), companyId);
+
+        boolean hasConflict = reservationRepository
+                .existsByRoomIdAndCompanyIdAndIdNotAndStatusInAndStartTimeLessThanAndEndTimeGreaterThan(
+                        dto.roomId(), companyId, id, ACTIVE_CONFLICT_STATUSES, dto.endTime(), dto.startTime()
+                );
+
+        if (hasConflict) {
+            throw new BusinessException(ErrorCode.RESERVATION_CONFLICT);
+        }
+
         reservation.updateDetails(
-                dto.title(), dto.description(), dto.startTime(),
-                dto.endTime(), dto.participantCount(), newRoom
+                dto.title(), dto.description(), dto.startTime(), dto.endTime(), newRoom
         );
+
+        if (reservation.exceedsRoomCapacity()) {
+            log.warn("Reservation {} exceeds room capacity after update", id);
+        }
 
         return reservationMapper.toResponseDto(reservation);
     }
@@ -119,12 +157,41 @@ public class ReservationServiceImpl implements ReservationService {
     @Transactional
     public ReservationResponseDto approve(Long companyId, Long id) {
         log.info("Approving reservation id: {}", id);
-        Reservation reservation = findReservationOrThrow(id, companyId);
 
-        reservation.approve();
+        Reservation target = findReservationOrThrow(id, companyId);
+
+        AuthenticatedUser currentUser = currentUserProvider.getCurrentUser()
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
+
+        if (!currentUser.superAdmin() && target.belongsTo(findUserAndValidateTenant(currentUser.userId(), companyId))) {
+            log.warn("User {} attempted to approve their own reservation {}", currentUser.userId(), id);
+            throw new BusinessException(ErrorCode.RESERVATION_ACCESS_DENIED);
+        }
+
+        List<Reservation> lockedConflicts = reservationRepository.findPendingConflictsForUpdate(
+                target.getRoom().getId(), companyId, target.getStartTime(), target.getEndTime()
+        );
+
+        Reservation lockedTarget = lockedConflicts.stream()
+                .filter(r -> r.getId().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESERVATION_NOT_PENDING_APPROVAL));
+
+        lockedTarget.approve();
+
+        List<Reservation> autoRejected = lockedConflicts.stream()
+                .filter(r -> !r.getId().equals(id))
+                .toList();
+
+        autoRejected.forEach(Reservation::autoRejectDueToConflict);
 
         log.info("Reservation approved successfully with id: {}", id);
-        return reservationMapper.toResponseDto(reservation);
+        if (!autoRejected.isEmpty()) {
+            log.info("Auto-rejected {} conflicting pending reservation(s) for room {}",
+                    autoRejected.size(), target.getRoom().getId());
+        }
+
+        return reservationMapper.toResponseDto(lockedTarget);
     }
 
     /**
@@ -149,7 +216,12 @@ public class ReservationServiceImpl implements ReservationService {
         log.info("Cancelling reservation id: {} by user: {}", id, userId);
         Reservation reservation = findReservationOrThrow(id, companyId);
 
-        if (!reservation.getOrganizer().getId().equals(userId)) {
+        boolean isOrganizer = reservation.getOrganizer().getId().equals(userId);
+        boolean hasCancelAllPermission = permissionResolutionService
+                .resolveEffectivePermissions(userId)
+                .contains("RESERVATION_CANCEL_ALL");
+
+        if (!isOrganizer && !hasCancelAllPermission) {
             throw new BusinessException(ErrorCode.RESERVATION_ACCESS_DENIED);
         }
 
@@ -219,5 +291,14 @@ public class ReservationServiceImpl implements ReservationService {
         if (start.isBefore(LocalDateTime.now())) {
             throw new BusinessException(ErrorCode.RESERVATION_IN_PAST);
         }
+    }
+
+    private Set<User> resolveParticipants(Long companyId, Set<Long> participantIds) {
+        if (participantIds == null || participantIds.isEmpty()) {
+            return new HashSet<>();
+        }
+        return participantIds.stream()
+                .map(id -> findUserAndValidateTenant(id, companyId))
+                .collect(java.util.stream.Collectors.toSet());
     }
 }

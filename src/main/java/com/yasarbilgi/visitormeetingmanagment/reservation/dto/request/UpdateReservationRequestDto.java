@@ -1,7 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.reservation.dto.request;
 
 import jakarta.validation.constraints.FutureOrPresent;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -28,11 +27,7 @@ public record UpdateReservationRequestDto(
         LocalDateTime endTime,
 
         @NotNull(message = "{reservation.roomId.notNull}")
-        Long roomId,
-
-        @NotNull(message = "{reservation.participantCount.notNull}")
-        @Min(value = 1, message = "{reservation.participantCount.min}")
-        Integer participantCount
+        Long roomId
 
 ) {
 }

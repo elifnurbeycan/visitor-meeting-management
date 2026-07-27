@@ -5,6 +5,7 @@ import lombok.Builder;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Builder
 public record ReservationResponseDto(
@@ -19,7 +20,9 @@ public record ReservationResponseDto(
 
         LocalDateTime endTime,
 
-        Integer participantCount,
+        Set<UserSummary> participants,
+
+        boolean capacityWarning,
 
         ReservationStatus status,
 
