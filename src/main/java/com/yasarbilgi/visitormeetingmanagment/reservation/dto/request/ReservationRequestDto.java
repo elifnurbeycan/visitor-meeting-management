@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Builder
 public record ReservationRequestDto(
@@ -30,9 +31,7 @@ public record ReservationRequestDto(
         @NotNull(message = "{reservation.roomId.notNull}")
         Long roomId,
 
-        @NotNull(message = "{reservation.participantCount.notNull}")
-        @Min(value = 1, message = "{reservation.participantCount.min}")
-        Integer participantCount
+        Set<Long> participantIds
 
 ) {
 }

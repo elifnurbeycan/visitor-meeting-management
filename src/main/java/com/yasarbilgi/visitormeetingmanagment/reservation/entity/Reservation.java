@@ -6,16 +6,7 @@ import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.reservation.enums.ReservationStatus;
 import com.yasarbilgi.visitormeetingmanagment.room.entity.Room;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -25,6 +16,8 @@ import org.hibernate.annotations.Filter;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @SuperBuilder
@@ -57,9 +50,6 @@ public class Reservation extends TenantBaseEntity {
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
-    @Column(name = "participant_count", nullable = false)
-    private Integer participantCount;
-
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
@@ -88,25 +78,30 @@ public class Reservation extends TenantBaseEntity {
     @JoinColumn(name = "organizer_id", nullable = false, foreignKey = @ForeignKey(name = "fk_reservations_organizer"))
     private User organizer;
 
+    @Builder.Default
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "reservation_participants",
+            joinColumns = @JoinColumn(name = "reservation_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> participants = new HashSet<>();
+
     public void updateDetails(
             String newTitle,
             String newDescription,
             LocalDateTime newStartTime,
             LocalDateTime newEndTime,
-            Integer newParticipantCount,
             Room newRoom
     ) {
         validateEditableStatus();
         validateTitle(newTitle);
         validateTimeRange(newStartTime, newEndTime);
-        validateParticipantCount(newParticipantCount);
-        validateCapacity(newParticipantCount, newRoom);
 
         this.title = newTitle;
         this.description = newDescription;
         this.startTime = newStartTime;
         this.endTime = newEndTime;
-        this.participantCount = newParticipantCount;
         this.room = newRoom;
     }
 
@@ -137,7 +132,7 @@ public class Reservation extends TenantBaseEntity {
     }
 
     public void cancel(String reason) {
-        validateEditableStatus();
+        validateCancellableStatus();
 
         this.status = ReservationStatus.CANCELLED;
         this.cancelReason = reason;
@@ -191,15 +186,25 @@ public class Reservation extends TenantBaseEntity {
         }
     }
 
-    private static void validateParticipantCount(Integer participantCount) {
-        if (participantCount == null || participantCount < 1) {
-            throw new BusinessException(ErrorCode.INVALID_PARTICIPANT_COUNT);
+    private void validateCancellableStatus() {
+        if (this.status != ReservationStatus.ACTIVE && this.status != ReservationStatus.PENDING_APPROVAL) {
+            throw new BusinessException(ErrorCode.INVALID_RESERVATION_STATUS);
         }
     }
 
-    private static void validateCapacity(Integer participantCount, Room newRoom) {
-        if (newRoom != null && participantCount != null && participantCount > newRoom.getCapacity()) {
-            throw new BusinessException(ErrorCode.RESERVATION_EXCEEDS_ROOM_CAPACITY);
-        }
+    public void addParticipant(User user) {
+        this.participants.add(user);
+    }
+
+    public void removeParticipant(User user) {
+        this.participants.remove(user);
+    }
+
+    public boolean hasParticipant(User user) {
+        return this.participants.contains(user);
+    }
+
+    public boolean exceedsRoomCapacity() {
+        return this.participants.size() > this.room.getCapacity();
     }
 }

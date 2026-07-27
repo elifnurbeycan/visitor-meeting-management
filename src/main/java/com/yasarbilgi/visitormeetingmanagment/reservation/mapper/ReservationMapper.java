@@ -12,11 +12,14 @@ public interface ReservationMapper {
 
     @Mapping(target = "room", source = "room")
     @Mapping(target = "organizer", source = "organizer")
+    @Mapping(target = "participants", source = "participants")
+    @Mapping(target = "capacityWarning", expression = "java(reservation.exceedsRoomCapacity())")
     ReservationResponseDto toResponseDto(Reservation reservation);
 
     ReservationResponseDto.RoomSummary toRoomSummary(Room room);
 
     @Mapping(target = "fullName", expression = "java(user.getFullName())")
     ReservationResponseDto.UserSummary toUserSummary(User user);
+
 
 }
