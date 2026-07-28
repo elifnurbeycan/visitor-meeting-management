@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.job.service.impl;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -12,6 +13,8 @@ import com.yasarbilgi.visitormeetingmanagment.job.repository.JobTitleRepository;
 import com.yasarbilgi.visitormeetingmanagment.job.service.JobTitleService;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleRepository;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -36,6 +40,8 @@ public class JobTitleServiceImpl implements JobTitleService {
     private final CompanyRepository companyRepository;
     private final RoleRepository roleRepository;
     private final JobTitleMapper jobTitleMapper;
+    private final AuditLogService auditLogService;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Şirkete ait yeni bir iş unvanı tanımlar.
@@ -61,6 +67,16 @@ public class JobTitleServiceImpl implements JobTitleService {
 
         JobTitle saved = jobTitleRepository.save(jobTitle);
         log.info("Job title created successfully with id: {}", saved.getId());
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "JOB_TITLE_CREATED",
+                "JOB_TITLE",
+                saved.getId(),
+                "Job title '" + saved.getName() + "' created"
+        );
+
         return jobTitleMapper.toResponseDto(saved);
     }
 
@@ -83,10 +99,19 @@ public class JobTitleServiceImpl implements JobTitleService {
         jobTitle.updateDescription(dto.description());
 
         Set<Role> updatedRoles = loadRolesIfProvided(dto.defaultRoleIds(), companyId);
-        jobTitle.getDefaultRoles().clear();
-        jobTitle.getDefaultRoles().addAll(updatedRoles);
+        updateDefaultRoles(jobTitle, updatedRoles);
 
         log.info("Job title updated successfully with id: {}", id);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "JOB_TITLE_UPDATED",
+                "JOB_TITLE",
+                id,
+                "Job title '" + jobTitle.getName() + "' updated"
+        );
+
         return jobTitleMapper.toResponseDto(jobTitle);
     }
 
@@ -139,6 +164,15 @@ public class JobTitleServiceImpl implements JobTitleService {
         log.info("Deactivating job title id: {} for company: {}", id, companyId);
         JobTitle jobTitle = findJobTitleOrThrow(id, companyId);
         jobTitle.deactivate();
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "JOB_TITLE_DEACTIVATED",
+                "JOB_TITLE",
+                id,
+                "Job title deactivated"
+        );
     }
 
     /**
@@ -150,6 +184,15 @@ public class JobTitleServiceImpl implements JobTitleService {
         log.info("Activating job title id: {} for company: {}", id, companyId);
         JobTitle jobTitle = findJobTitleOrThrow(id, companyId);
         jobTitle.activate();
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "JOB_TITLE_ACTIVATED",
+                "JOB_TITLE",
+                id,
+                "Job title activated"
+        );
     }
 
     // ----- Yardımcı Metotlar -----
@@ -202,6 +245,25 @@ public class JobTitleServiceImpl implements JobTitleService {
         }
 
         return new java.util.HashSet<>(rolesList);
+    }
+
+    /**
+     * JobTitle'ın mevcut varsayılan rol listesini, DTO'dan gelen yeni
+     * listeyle senkronize eder. Artık gönderilmeyen roller entity'nin
+     * kendi removeDefaultRole() metoduyla kaldırılır, yeni gönderilenler
+     * addDefaultRole() ile eklenir — koleksiyona doğrudan müdahale
+     * (clear()/addAll()) yerine entity'nin kendi iş mantığı kullanılır.
+     */
+    private void updateDefaultRoles(JobTitle jobTitle, Set<Role> requestedRoles) {
+        Set<Role> currentRoles = new HashSet<>(jobTitle.getDefaultRoles());
+
+        currentRoles.stream()
+                .filter(role -> !requestedRoles.contains(role))
+                .forEach(jobTitle::removeDefaultRole);
+
+        requestedRoles.stream()
+                .filter(role -> !jobTitle.hasDefaultRole(role))
+                .forEach(jobTitle::addDefaultRole);
     }
 
 }

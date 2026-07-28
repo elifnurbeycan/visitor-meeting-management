@@ -81,6 +81,10 @@ public class UserServiceImpl implements UserService {
                 .build();
         roles.forEach(user::assignRole);
 
+        if (jobTitle != null) {
+            jobTitle.getDefaultRoles().forEach(user::assignRole);
+        }
+
         User saved = userRepository.save(user);
 
         log.info("User created successfully with id: {}", saved.getId());
@@ -229,6 +233,12 @@ public class UserServiceImpl implements UserService {
         enforceAdminHierarchy(companyId, userId);
         User user = findUserOrThrow(companyId, userId);
         Role role = findRoleOrThrow(companyId, roleId);
+
+        if (user.hasRole(role)) {
+            log.warn("User {} already has role {}", userId, roleId);
+            throw new BusinessException(ErrorCode.ROLE_ALREADY_ASSIGNED);
+        }
+
         user.assignRole(role);
         log.info("Role assigned successfully");
         permissionCacheService.invalidate(userId);
@@ -276,6 +286,10 @@ public class UserServiceImpl implements UserService {
         User user = findUserOrThrow(companyId, userId);
         JobTitle jobTitle = resolveJobTitle(companyId, jobTitleId);
         user.changeJobTitle(jobTitle);
+
+        jobTitle.getDefaultRoles().forEach(user::assignRole);
+        permissionCacheService.invalidate(userId);
+
         log.info("Job title changed successfully");
         return userMapper.toResponseDto(user);
     }
@@ -360,6 +374,26 @@ public class UserServiceImpl implements UserService {
     @Override
     public long countActiveUsers(Long companyId) {
         return userRepository.countByCompanyIdAndActive(companyId, true);
+    }
+
+    @Override
+    @Transactional
+    public void forcePasswordReset(Long companyId, Long userId) {
+        log.info("Forcing password reset for user: {} in company: {}", userId, companyId);
+        enforceAdminHierarchy(companyId, userId);
+        User user = findUserOrThrow(companyId, userId);
+        user.forcePasswordChangeOnNextLogin();
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "PASSWORD_RESET_FORCED",
+                "USER",
+                userId,
+                "User forced to change password on next login"
+        );
+
+        log.info("Password reset forced successfully for user: {}", userId);
     }
 
     // ----- Private helpers -----

@@ -88,6 +88,11 @@ public enum ErrorCode {
             "role.alreadyExists"
     ),
 
+    ROLE_ALREADY_ASSIGNED(
+            HttpStatus.CONFLICT,
+            "user.roleAlreadyAssigned"
+    ),
+
     ROLE_INACTIVE(
             HttpStatus.UNPROCESSABLE_ENTITY,
             "role.inactive"

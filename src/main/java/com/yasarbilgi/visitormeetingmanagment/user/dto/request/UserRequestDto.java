@@ -36,7 +36,6 @@ public record UserRequestDto(
 
         Long departmentId,
 
-        @NotEmpty(message = "{user.roleIds.notEmpty}")
         Set<Long> roleIds
 
 ) {

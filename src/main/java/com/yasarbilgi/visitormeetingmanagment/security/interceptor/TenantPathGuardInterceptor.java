@@ -20,11 +20,11 @@ import java.util.Map;
  * (örn. /api/v1/companies/{companyId}/users ya da /api/v1/roles?companyId=7),
  * gönderilen companyId'nin gerçekten isteği yapan kullanıcının kendi
  * şirketiyle eşleştiğini doğrular. Eşleşmezse TENANT_ACCESS_DENIED fırlatır.
- *
+
  * Bu, servis katmanındaki manuel companyId filtrelemesine ek olarak,
  * "companyId'yi elle değiştirip başka şirketin verisine erişme" (IDOR)
  * saldırısını controller seviyesinde, sorgu hiç çalışmadan önce engeller.
- *
+
  * SuperAdmin bu kontrolden muaftır (şirketler arası erişimi doğaldır).
  */
 @Slf4j

@@ -66,4 +66,6 @@ public interface UserService {
 
     long countActiveUsers(Long companyId);
 
+    void forcePasswordReset(Long companyId, Long userId);
+
 }
