@@ -1,6 +1,6 @@
 spring:
   application:
-    name: meeting-room-management
+    name: meeting-room-management # oluşturulan database in adı
   profiles:
     active: dev
   messages:
@@ -8,10 +8,11 @@ spring:
     use-code-as-default-message: true
     encoding: UTF-8
     fallback-to-system-locale: false
-
   web:
     locale: tr
     locale-resolver: accept_header
+  mail:
+    host: localhost # E-posta gönderim motorunun otomatik oluşması için eklendi
 
 server:
   servlet:
@@ -28,3 +29,7 @@ management:
 
 cors:
   allowed-origins: http://localhost:3000,http://localhost:5173
+jwt:
+  secret: dGhpc2lzYXZlcnlzZWN1cmVrZXlmb3Jqd3R0ZXN0aW5nYmFzZTY0ZW5jb2RlZA==
+  access-token-expiration: 900000
+  refresh-token-expiration: 2592000000
