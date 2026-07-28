@@ -38,4 +38,10 @@ public class IdempotencyKey {
     @Builder.Default
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
+
+    @Column(name = "company_id")
+    private Long companyId;
+
+    @Column(name = "user_id")
+    private Long userId;
 }

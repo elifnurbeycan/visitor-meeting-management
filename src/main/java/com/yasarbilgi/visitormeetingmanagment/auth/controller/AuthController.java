@@ -4,6 +4,7 @@ import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.ChangePasswordReq
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.LoginRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.RefreshTokenRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.LoginResponseDto;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.MeResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.service.AuthService;
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
 import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
@@ -33,6 +34,14 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<MeResponseDto>> getCurrentUser(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        MeResponseDto me = authService.getCurrentUser(currentUser.userId());
+        return ResponseEntity.ok(ApiResponse.success(me));
+    }
+
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<LoginResponseDto>> refresh(
             @Valid @RequestBody RefreshTokenRequestDto dto
@@ -50,11 +59,13 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<ApiResponse<Void>> changePassword(
+    public ResponseEntity<ApiResponse<LoginResponseDto>> changePassword(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody ChangePasswordRequestDto dto
     ) {
-        authService.changePassword(currentUser.userId(), dto.currentPassword(), dto.newPassword());
-        return ResponseEntity.ok(ApiResponse.success("Password changed successfully"));
+        LoginResponseDto result = authService.changePassword(
+                currentUser.userId(), dto.currentPassword(), dto.newPassword()
+        );
+        return ResponseEntity.ok(ApiResponse.success("Password changed successfully", result));
     }
 }

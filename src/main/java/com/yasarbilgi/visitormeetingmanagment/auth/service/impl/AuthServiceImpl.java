@@ -1,6 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.auth.service.impl;
 
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.LoginResponseDto;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.MeResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.service.AuthService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
@@ -9,6 +10,7 @@ import com.yasarbilgi.visitormeetingmanagment.company.repository.CompanyReposito
 import com.yasarbilgi.visitormeetingmanagment.platform.entity.SuperAdmin;
 import com.yasarbilgi.visitormeetingmanagment.platform.enums.CompanyStatus;
 import com.yasarbilgi.visitormeetingmanagment.platform.repository.SuperAdminRepository;
+import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.security.entity.RefreshToken;
 import com.yasarbilgi.visitormeetingmanagment.security.repository.RefreshTokenRepository;
 import com.yasarbilgi.visitormeetingmanagment.security.service.JwtService;
@@ -29,6 +31,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -46,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final PermissionResolutionService permissionResolutionService;
     private final PermissionCacheService permissionCacheService;
+
 
     @Value("${jwt.access-token-expiration}")
     private long accessTokenExpirationMs;
@@ -176,6 +180,31 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public MeResponseDto getCurrentUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Set<String> permissions = permissionResolutionService.resolveEffectivePermissions(userId);
+
+        Set<String> roleNames = user.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
+
+        return MeResponseDto.builder()
+                .userId(user.getId())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .username(user.getUsername())
+                .owner(user.isOwner())
+                .companyId(user.getCompany().getId())
+                .companyName(user.getCompany().getName())
+                .roleNames(roleNames)
+                .permissions(permissions)
+                .build();
+    }
+
+    @Override
     @Transactional
     public void logout(String refreshToken) {
         log.info("Logout requested");
@@ -193,7 +222,7 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     @Transactional
-    public void changePassword(Long userId, String currentPassword, String newPassword) {
+    public LoginResponseDto changePassword(Long userId, String currentPassword, String newPassword) {
         log.info("Password change requested for user: {}", userId);
 
         User user = userRepository.findById(userId)
@@ -207,9 +236,22 @@ public class AuthServiceImpl implements AuthService {
         user.changePasswordHash(passwordEncoder.encode(newPassword));
         user.clearMustChangePasswordFlag();
 
+        // Diğer tüm cihazlardaki/oturumlardaki refresh token'lar iptal edilir —
+        // güvenlik amaçlı. Ama BU isteği yapan kullanıcı zaten mevcut şifresini
+        // doğrulayarak kimliğini kanıtladığı için, kendisine kesintisiz devam
+        // edebilmesi adına hemen yeni bir token çifti veriyoruz.
         refreshTokenRepository.revokeAllByUserId(userId, Instant.now());
 
+        Set<String> permissions = permissionResolutionService.resolveEffectivePermissions(userId);
+        permissionCacheService.cachePermissions(userId, permissions);
+
+        String newAccessToken = jwtService.generateAccessToken(
+                user.getId(), user.getCompany().getId(), permissions
+        );
+        String newRefreshToken = issueRefreshToken(user, null);
+
         log.info("Password changed successfully for user: {}", userId);
+        return buildLoginResponse(newAccessToken, newRefreshToken, false);
     }
 
     // ----- Private helpers -----

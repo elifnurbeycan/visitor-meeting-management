@@ -43,6 +43,8 @@ public interface ReservationService {
     /** Verilen tarih aralığıyla kesişen rezervasyonları sayfalanmış şekilde listeler (takvim görünümü için). */
     Page<ReservationResponseDto> getAllByDateRange(Long companyId, LocalDateTime from, LocalDateTime to, Pageable pageable);
 
+    Page<ReservationResponseDto> getMyReservations(Long companyId, Long userId, Pageable pageable);
+
     ReservationResponseDto addParticipant(Long companyId, Long organizerId, Long reservationId, Long userId);
 
     ReservationResponseDto removeParticipant(Long companyId, Long organizerId, Long reservationId, Long userId);
