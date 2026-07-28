@@ -339,6 +339,12 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
+    public Page<ReservationResponseDto> getMyReservations(Long companyId, Long userId, Pageable pageable) {
+        return reservationRepository.findAllByOrganizerIdAndCompanyId(userId, companyId, pageable)
+                .map(reservationMapper::toResponseDto);
+    }
+
+    @Override
     @Transactional
     public ReservationResponseDto addParticipant(Long companyId, Long organizerId, Long reservationId, Long userId) {
         log.info("Adding participant {} to reservation {} by user {}", userId, reservationId, organizerId);

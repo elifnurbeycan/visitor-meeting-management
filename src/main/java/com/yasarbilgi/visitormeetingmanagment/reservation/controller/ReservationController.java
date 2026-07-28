@@ -180,4 +180,16 @@ public class ReservationController {
         );
         return ResponseEntity.ok(ApiResponse.success("Participant removed successfully", updated));
     }
+
+    @PreAuthorize("hasAnyAuthority('RESERVATION_VIEW_OWN', 'RESERVATION_VIEW_ALL')")
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<PageResponse<ReservationResponseDto>>> getMyReservations(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PageableDefault(size = 20, sort = "startTime") Pageable pageable
+    ) {
+        PageResponse<ReservationResponseDto> page = PageResponse.of(
+                reservationService.getMyReservations(currentUser.companyId(), currentUser.userId(), pageable)
+        );
+        return ResponseEntity.ok(ApiResponse.success(page));
+    }
 }

@@ -3,6 +3,7 @@ package com.yasarbilgi.visitormeetingmanagment.user.controller;
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
 import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserDirectoryResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.service.UserService;
 import jakarta.validation.Valid;
@@ -223,5 +224,17 @@ public class UserController {
     @GetMapping("/count/active")
     public ResponseEntity<ApiResponse<Long>> countActiveUsers(@PathVariable Long companyId) {
         return ResponseEntity.ok(ApiResponse.success(userService.countActiveUsers(companyId)));
+    }
+
+    @PreAuthorize("hasAuthority('USER_VIEW')")
+    @GetMapping("/directory")
+    public ResponseEntity<ApiResponse<PageResponse<UserDirectoryResponseDto>>> searchDirectory(
+            @PathVariable Long companyId,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 20, sort = "firstName") Pageable pageable
+    ) {
+        PageResponse<UserDirectoryResponseDto> users =
+                PageResponse.of(userService.searchDirectory(companyId, keyword, pageable));
+        return ResponseEntity.ok(ApiResponse.success(users));
     }
 }

@@ -1,6 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.user.service;
 
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserDirectoryResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -34,6 +35,8 @@ public interface UserService {
     Page<UserResponseDto> getAllByRole(Long companyId, Long roleId, Pageable pageable);
 
     Page<UserResponseDto> search(Long companyId, boolean active, String keyword, Pageable pageable);
+
+    Page<UserDirectoryResponseDto> searchDirectory(Long companyId, String keyword, Pageable pageable);
 
     // ----- Durum yönetimi -----
 

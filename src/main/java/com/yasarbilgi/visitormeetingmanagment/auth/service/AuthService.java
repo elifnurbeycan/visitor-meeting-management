@@ -1,6 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.auth.service;
 
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.LoginResponseDto;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.MeResponseDto;
 
 public interface AuthService {
 
@@ -10,8 +11,10 @@ public interface AuthService {
 
     LoginResponseDto refresh(String refreshToken);
 
+    MeResponseDto getCurrentUser(Long userId);
+
     void logout(String refreshToken);
 
-    void changePassword(Long userId, String currentPassword, String newPassword);
+    LoginResponseDto changePassword(Long userId, String currentPassword, String newPassword);
 
 }

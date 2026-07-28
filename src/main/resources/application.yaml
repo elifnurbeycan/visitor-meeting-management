@@ -27,4 +27,4 @@ management:
         include: health, info, metrics, loggers, circuitbreakers
 
 cors:
-  allowed-origins: http://localhost:3000
+  allowed-origins: http://localhost:3000,http://localhost:5173

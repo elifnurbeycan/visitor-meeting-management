@@ -7,5 +7,7 @@ import java.util.Optional;
 
 public interface IdempotencyKeyRepository extends JpaRepository<IdempotencyKey, Long> {
 
-    Optional<IdempotencyKey> findByIdempotencyKey(String idempotencyKey);
+    Optional<IdempotencyKey> findByIdempotencyKeyAndCompanyIdAndUserId(
+            String idempotencyKey, Long companyId, Long userId
+    );
 }

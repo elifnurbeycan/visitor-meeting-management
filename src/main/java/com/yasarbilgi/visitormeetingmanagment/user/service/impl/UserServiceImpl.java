@@ -16,6 +16,7 @@ import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionCacheSe
 import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
 import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserDirectoryResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import com.yasarbilgi.visitormeetingmanagment.user.mapper.UserMapper;
@@ -188,6 +189,16 @@ public class UserServiceImpl implements UserService {
         log.debug("Searching users with keyword='{}' for company: {}", keyword, companyId);
         return userRepository.searchByKeyword(companyId, active, keyword, pageable)
                 .map(userMapper::toResponseDto);
+    }
+
+    @Override
+    public Page<UserDirectoryResponseDto> searchDirectory(Long companyId, String keyword, Pageable pageable) {
+        return userRepository.searchByKeyword(companyId, true, keyword, pageable)
+                .map(user -> UserDirectoryResponseDto.builder()
+                        .id(user.getId())
+                        .fullName(user.getFullName())
+                        .email(user.getEmail())
+                        .build());
     }
 
     @Override
