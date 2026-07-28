@@ -18,7 +18,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * (OSIV) çalıştıktan SONRA tetiklenir — bu noktada thread'e gerçek/kalıcı bir
  * Hibernate Session zaten bağlanmış olur. SecurityContext'teki AuthenticatedUser'dan
  * companyId'yi okuyup tenantFilter'ı bu GERÇEK session üzerinde enable eder.
- *
+
  * Not: Bu daha önce bir Filter olarak yazılmıştı, ama Filter'lar OSIV'den ÖNCE
  * çalıştığı için, o zaman enable edilen filtre geçici (transient) bir
  * EntityManager üzerinde uygulanıyor ve anında etkisiz kalıyordu.

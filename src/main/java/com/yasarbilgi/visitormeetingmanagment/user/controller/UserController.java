@@ -237,4 +237,14 @@ public class UserController {
                 PageResponse.of(userService.searchDirectory(companyId, keyword, pageable));
         return ResponseEntity.ok(ApiResponse.success(users));
     }
+
+    @PreAuthorize("hasAuthority('USER_MANAGE')")
+    @PatchMapping("/{userId}/force-password-reset")
+    public ResponseEntity<ApiResponse<Void>> forcePasswordReset(
+            @PathVariable Long companyId,
+            @PathVariable Long userId
+    ) {
+        userService.forcePasswordReset(companyId, userId);
+        return ResponseEntity.ok(ApiResponse.success("User will be required to change password on next login"));
+    }
 }

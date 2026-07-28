@@ -29,6 +29,9 @@ import java.util.Set;
 @Filter(name = "tenantFilter")
 @Table(
         name = "job_titles",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_job_titles_company_name", columnNames = {"company_id", "name"})
+        },
         indexes = {
                 @Index(name = "idx_job_titles_name", columnList = "name"),
                 @Index(name = "idx_job_titles_active", columnList = "active")
