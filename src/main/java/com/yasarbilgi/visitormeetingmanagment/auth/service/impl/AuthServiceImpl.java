@@ -254,6 +254,30 @@ public class AuthServiceImpl implements AuthService {
         return buildLoginResponse(newAccessToken, newRefreshToken, false);
     }
 
+    @Override
+    @Transactional
+    public LoginResponseDto changeSuperAdminPassword(Long superAdminId, String currentPassword, String newPassword) {
+        log.info("Password change requested for super admin: {}", superAdminId);
+
+        SuperAdmin superAdmin = superAdminRepository.findById(superAdminId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SUPER_ADMIN_NOT_FOUND));
+
+        if (!passwordEncoder.matches(currentPassword, superAdmin.getPasswordHash())) {
+            log.warn("Password change failed: current password mismatch for super admin: {}", superAdminId);
+            throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        superAdmin.changePassword(passwordEncoder.encode(newPassword));
+
+        refreshTokenRepository.revokeAllBySuperAdminId(superAdminId, Instant.now());
+
+        String newAccessToken = jwtService.generateSuperAdminAccessToken(superAdminId);
+        String newRefreshToken = issueRefreshToken(null, superAdmin);
+
+        log.info("Password changed successfully for super admin: {}", superAdminId);
+        return buildLoginResponse(newAccessToken, newRefreshToken, false);
+    }
+
     // ----- Private helpers -----
 
     private String issueRefreshToken(User user, SuperAdmin superAdmin) {

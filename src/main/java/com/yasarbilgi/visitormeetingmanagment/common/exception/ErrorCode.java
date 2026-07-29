@@ -411,6 +411,11 @@ public enum ErrorCode {
             "superAdmin.notActive"
     ),
 
+    SUPER_ADMIN_CANNOT_DEACTIVATE_ANOTHER(
+            HttpStatus.FORBIDDEN,
+            "superAdmin.cannotDeactivateAnother"
+    ),
+
     RESERVATION_EXCEEDS_ROOM_CAPACITY(
             HttpStatus.BAD_REQUEST,
             "reservation.exceedsRoomCapacity"
