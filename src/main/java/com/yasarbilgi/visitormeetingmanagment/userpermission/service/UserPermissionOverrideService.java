@@ -7,23 +7,23 @@ import org.springframework.data.domain.Pageable;
 
 public interface UserPermissionOverrideService {
 
-    UserPermissionOverrideResponseDto create(UserPermissionOverrideRequestDto dto);
+    UserPermissionOverrideResponseDto create(Long companyId, UserPermissionOverrideRequestDto dto);
 
-    UserPermissionOverrideResponseDto update(Long id, UserPermissionOverrideRequestDto dto);
+    UserPermissionOverrideResponseDto update(Long companyId, Long id, UserPermissionOverrideRequestDto dto);
 
-    UserPermissionOverrideResponseDto getById(Long id);
+    UserPermissionOverrideResponseDto getById(Long companyId, Long id);
 
-    Page<UserPermissionOverrideResponseDto> getAll(Pageable pageable);
+    Page<UserPermissionOverrideResponseDto> getAll(Long companyId, Pageable pageable);
 
-    Page<UserPermissionOverrideResponseDto> getAllByActive(boolean active, Pageable pageable);
+    Page<UserPermissionOverrideResponseDto> getAllByActive(Long companyId, boolean active, Pageable pageable);
 
-    Page<UserPermissionOverrideResponseDto> getAllByUserId(Long userId, Pageable pageable);
+    Page<UserPermissionOverrideResponseDto> getAllByUserId(Long companyId, Long userId, Pageable pageable);
 
-    Page<UserPermissionOverrideResponseDto> getAllByUserIdAndActive(Long userId, boolean active, Pageable pageable);
+    Page<UserPermissionOverrideResponseDto> getAllByUserIdAndActive(Long companyId, Long userId, boolean active, Pageable pageable);
 
-    Page<UserPermissionOverrideResponseDto> search(boolean active, String keyword, Pageable pageable);
+    Page<UserPermissionOverrideResponseDto> search(Long companyId, boolean active, String keyword, Pageable pageable);
 
-    void deactivate(Long id);
+    void deactivate(Long companyId, Long id);
 
-    void activate(Long id);
+    void activate(Long companyId, Long id);
 }
