@@ -73,6 +73,8 @@ public enum PermissionCode {
     FEATURE_VIEW,
     FEATURE_UPDATE,
     FEATURE_DELETE,
+    FEATURE_ACTIVATE,
+    FEATURE_DEACTIVATE,
 
     // ----- Reservation Management -----
     RESERVATION_CREATE,

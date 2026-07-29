@@ -10,6 +10,8 @@ import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
 import com.yasarbilgi.visitormeetingmanagment.company.mapper.CompanyMapper;
 import com.yasarbilgi.visitormeetingmanagment.company.repository.CompanyRepository;
 import com.yasarbilgi.visitormeetingmanagment.company.service.CompanyService;
+import com.yasarbilgi.visitormeetingmanagment.feature.entity.Feature;
+import com.yasarbilgi.visitormeetingmanagment.feature.repository.FeatureRepository;
 import com.yasarbilgi.visitormeetingmanagment.platform.enums.CompanyStatus;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.RoleTemplate;
@@ -45,6 +47,11 @@ public class CompanyServiceImpl implements CompanyService {
     private final RoleRepository roleRepository;
     private final AuditLogService auditLogService;
     private final CurrentUserProvider currentUserProvider;
+    private final FeatureRepository featureRepository;
+
+    private static final List<String> DEFAULT_FEATURE_NAMES = List.of(
+            "TV", "Projeksiyon", "Kamera", "Mikrofon", "Beyaz Tahta", "Klima", "Video Konferans Sistemi"
+    );
 
     @Override
     @Transactional
@@ -216,6 +223,14 @@ public class CompanyServiceImpl implements CompanyService {
             roleRepository.save(role);
         }
 
+        for (String featureName : DEFAULT_FEATURE_NAMES) {
+            Feature feature = Feature.builder()
+                    .company(company)
+                    .name(featureName)
+                    .build();
+            featureRepository.save(feature);
+        }
+
         auditLogService.log(
                 id,
                 currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
@@ -225,7 +240,8 @@ public class CompanyServiceImpl implements CompanyService {
                 "Company '" + company.getName() + "' approved by SuperAdmin"
         );
 
-        log.info("Company {} approved, {} default roles created", id, templates.size());
+        log.info("Company {} approved, {} default roles and {} default features created",
+                id, templates.size(), DEFAULT_FEATURE_NAMES.size());
         return companyMapper.toResponseDto(company);
     }
 
