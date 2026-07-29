@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.feature.service.impl;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -13,6 +14,8 @@ import com.yasarbilgi.visitormeetingmanagment.feature.repository.FeatureReposito
 import com.yasarbilgi.visitormeetingmanagment.feature.service.FeatureService;
 import com.yasarbilgi.visitormeetingmanagment.room.entity.Room;
 import com.yasarbilgi.visitormeetingmanagment.room.repository.RoomRepository;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,6 +35,8 @@ public class FeatureServiceImpl implements FeatureService {
     private final CompanyRepository companyRepository;
     private final FeatureMapper featureMapper;
     private final RoomRepository roomRepository;
+    private final AuditLogService auditLogService;
+    private final CurrentUserProvider currentUserProvider;
 
     /**
      * Bir şirket için yeni bir oda özelliği (TV, Projeksiyon vb.) oluşturur.
@@ -55,6 +60,16 @@ public class FeatureServiceImpl implements FeatureService {
         Feature saved = featureRepository.save(feature);
 
         log.info("Feature created successfully with id: {}", saved.getId());
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "FEATURE_CREATED",
+                "FEATURE",
+                saved.getId(),
+                "Feature '" + saved.getName() + "' created"
+        );
+
         return featureMapper.toResponseDto(saved);
     }
 
@@ -78,6 +93,16 @@ public class FeatureServiceImpl implements FeatureService {
         feature.updateDescription(dto.description());
 
         log.info("Feature updated successfully with id: {}", id);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "FEATURE_UPDATED",
+                "FEATURE",
+                id,
+                "Feature '" + feature.getName() + "' updated"
+        );
+
         return featureMapper.toResponseDto(feature);
     }
 
@@ -153,6 +178,15 @@ public class FeatureServiceImpl implements FeatureService {
                     affectedRooms.stream().map(Room::getId).toList());
         }
 
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "FEATURE_DEACTIVATED",
+                "FEATURE",
+                id,
+                "Feature deactivated, removed from " + affectedRooms.size() + " room(s)"
+        );
+
         return FeatureDeactivationResultDto.builder()
                 .featureId(id)
                 .affectedRoomCount(affectedRooms.size())
@@ -168,6 +202,15 @@ public class FeatureServiceImpl implements FeatureService {
         log.info("Activating feature with id: {} for companyId: {}", id, companyId);
         Feature feature = findFeatureOrThrow(companyId, id);
         feature.activate();
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "FEATURE_ACTIVATED",
+                "FEATURE",
+                id,
+                "Feature activated"
+        );
     }
 
     // ----- Private helpers -----

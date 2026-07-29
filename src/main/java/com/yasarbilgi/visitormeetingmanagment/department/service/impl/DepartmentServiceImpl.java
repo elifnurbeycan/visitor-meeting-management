@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.department.service.impl;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -10,6 +11,8 @@ import com.yasarbilgi.visitormeetingmanagment.department.entity.Department;
 import com.yasarbilgi.visitormeetingmanagment.department.mapper.DepartmentMapper;
 import com.yasarbilgi.visitormeetingmanagment.department.repository.DepartmentRepository;
 import com.yasarbilgi.visitormeetingmanagment.department.service.DepartmentService;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,6 +29,8 @@ public class DepartmentServiceImpl implements DepartmentService {
     private final DepartmentRepository departmentRepository;
     private final CompanyRepository companyRepository;
     private final DepartmentMapper departmentMapper;
+    private final AuditLogService auditLogService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     @Transactional
@@ -46,6 +51,16 @@ public class DepartmentServiceImpl implements DepartmentService {
         Department saved = departmentRepository.save(department);
 
         log.info("Department created successfully with id: {}", saved.getId());
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "DEPARTMENT_CREATED",
+                "DEPARTMENT",
+                saved.getId(),
+                "Department '" + saved.getName() + "' created"
+        );
+
         return departmentMapper.toResponseDto(saved);
     }
 
@@ -64,6 +79,15 @@ public class DepartmentServiceImpl implements DepartmentService {
         department.updateDescription(dto.description());
 
         log.info("Department updated successfully: {}", departmentId);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "DEPARTMENT_UPDATED",
+                "DEPARTMENT",
+                departmentId,
+                "Department '" + department.getName() + "' updated"
+        );
         return departmentMapper.toResponseDto(department);
     }
 
@@ -97,6 +121,15 @@ public class DepartmentServiceImpl implements DepartmentService {
         log.info("Deactivating department: {} for company: {}", departmentId, companyId);
         Department department = findDepartmentOrThrow(companyId, departmentId);
         department.deactivate();
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "DEPARTMENT_DEACTIVATED",
+                "DEPARTMENT",
+                departmentId,
+                "Department deactivated"
+        );
     }
 
     @Override
@@ -105,6 +138,15 @@ public class DepartmentServiceImpl implements DepartmentService {
         log.info("Activating department: {} for company: {}", departmentId, companyId);
         Department department = findDepartmentOrThrow(companyId, departmentId);
         department.activate();
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "DEPARTMENT_ACTIVATED",
+                "DEPARTMENT",
+                departmentId,
+                "Department activated"
+        );
     }
 
     private Department findDepartmentOrThrow(Long companyId, Long departmentId) {
