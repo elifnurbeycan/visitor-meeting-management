@@ -1,6 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.feature.service;
 
 import com.yasarbilgi.visitormeetingmanagment.feature.dto.request.FeatureRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.feature.dto.response.FeatureDeactivationResultDto;
 import com.yasarbilgi.visitormeetingmanagment.feature.dto.response.FeatureResponseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,7 +22,7 @@ public interface FeatureService {
 
     long countAll(Long companyId);
 
-    void deactivate(Long companyId, Long id);
+    FeatureDeactivationResultDto deactivate(Long companyId, Long id);
 
     void activate(Long companyId, Long id);
 

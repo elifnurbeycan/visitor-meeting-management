@@ -5,17 +5,22 @@ import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
 import com.yasarbilgi.visitormeetingmanagment.company.repository.CompanyRepository;
 import com.yasarbilgi.visitormeetingmanagment.feature.dto.request.FeatureRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.feature.dto.response.FeatureDeactivationResultDto;
 import com.yasarbilgi.visitormeetingmanagment.feature.dto.response.FeatureResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.feature.entity.Feature;
 import com.yasarbilgi.visitormeetingmanagment.feature.mapper.FeatureMapper;
 import com.yasarbilgi.visitormeetingmanagment.feature.repository.FeatureRepository;
 import com.yasarbilgi.visitormeetingmanagment.feature.service.FeatureService;
+import com.yasarbilgi.visitormeetingmanagment.room.entity.Room;
+import com.yasarbilgi.visitormeetingmanagment.room.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -26,6 +31,7 @@ public class FeatureServiceImpl implements FeatureService {
     private final FeatureRepository featureRepository;
     private final CompanyRepository companyRepository;
     private final FeatureMapper featureMapper;
+    private final RoomRepository roomRepository;
 
     /**
      * Bir şirket için yeni bir oda özelliği (TV, Projeksiyon vb.) oluşturur.
@@ -129,10 +135,28 @@ public class FeatureServiceImpl implements FeatureService {
      */
     @Override
     @Transactional
-    public void deactivate(Long companyId, Long id) {
+    public FeatureDeactivationResultDto deactivate(Long companyId, Long id) {
         log.info("Deactivating feature with id: {} for companyId: {}", id, companyId);
         Feature feature = findFeatureOrThrow(companyId, id);
+
+        List<Room> affectedRooms = roomRepository.findAllByFeatures_IdAndCompanyId(id, companyId);
+
+        for (Room room : affectedRooms) {
+            room.removeFeature(feature);
+        }
+
         feature.deactivate();
+
+        if (!affectedRooms.isEmpty()) {
+            log.warn("Feature {} deactivated, removed from {} room(s): {}",
+                    id, affectedRooms.size(),
+                    affectedRooms.stream().map(Room::getId).toList());
+        }
+
+        return FeatureDeactivationResultDto.builder()
+                .featureId(id)
+                .affectedRoomCount(affectedRooms.size())
+                .build();
     }
 
     /**

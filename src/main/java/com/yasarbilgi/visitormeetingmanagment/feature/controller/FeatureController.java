@@ -3,6 +3,7 @@ package com.yasarbilgi.visitormeetingmanagment.feature.controller;
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
 import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
 import com.yasarbilgi.visitormeetingmanagment.feature.dto.request.FeatureRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.feature.dto.response.FeatureDeactivationResultDto;
 import com.yasarbilgi.visitormeetingmanagment.feature.dto.response.FeatureResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.feature.service.FeatureService;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -29,6 +31,7 @@ public class FeatureController {
     /**
      * Bir şirket için yeni bir oda özelliği oluşturur. Başarılı olursa 201 Created döner.
      */
+    @PreAuthorize("hasAuthority('FEATURE_CREATE')")
     @PostMapping
     public ResponseEntity<ApiResponse<FeatureResponseDto>> create(
             @PathVariable Long companyId,
@@ -43,6 +46,7 @@ public class FeatureController {
     /**
      * Var olan bir feature'ı günceller.
      */
+    @PreAuthorize("hasAuthority('FEATURE_UPDATE')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<FeatureResponseDto>> update(
             @PathVariable Long companyId,
@@ -56,6 +60,7 @@ public class FeatureController {
     /**
      * ID'ye göre tekil bir feature getirir.
      */
+    @PreAuthorize("hasAuthority('FEATURE_VIEW')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<FeatureResponseDto>> getById(
             @PathVariable Long companyId,
@@ -69,6 +74,7 @@ public class FeatureController {
      * Bir şirkete ait tüm feature'ları sayfalanmış şekilde listeler.
      * Varsayılan: sayfa boyutu 20, isme göre artan sıralama.
      */
+    @PreAuthorize("hasAuthority('FEATURE_VIEW')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<FeatureResponseDto>>> getAll(
             @PathVariable Long companyId,
@@ -81,6 +87,7 @@ public class FeatureController {
     /**
      * Bir şirkete ait, aktif/pasif durumuna göre filtrelenmiş feature'ları listeler.
      */
+    @PreAuthorize("hasAuthority('FEATURE_VIEW')")
     @GetMapping("/by-active")
     public ResponseEntity<ApiResponse<PageResponse<FeatureResponseDto>>> getAllByActive(
             @PathVariable Long companyId,
@@ -95,6 +102,7 @@ public class FeatureController {
     /**
      * Bir şirket içinde isim veya açıklama üzerinde anahtar kelime araması yapar.
      */
+    @PreAuthorize("hasAuthority('FEATURE_VIEW')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<FeatureResponseDto>>> search(
             @PathVariable Long companyId,
@@ -110,6 +118,7 @@ public class FeatureController {
     /**
      * Bir şirketin toplam feature sayısını döner.
      */
+    @PreAuthorize("hasAuthority('FEATURE_VIEW')")
     @GetMapping("/count")
     public ResponseEntity<ApiResponse<Long>> countAll(@PathVariable Long companyId) {
         long count = featureService.countAll(companyId);
@@ -119,18 +128,23 @@ public class FeatureController {
     /**
      * Bir feature'ı pasif hale getirir (soft-delete).
      */
+    @PreAuthorize("hasAuthority('FEATURE_DEACTIVATE')")
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<ApiResponse<Void>> deactivate(
+    public ResponseEntity<ApiResponse<FeatureDeactivationResultDto>> deactivate(
             @PathVariable Long companyId,
             @PathVariable Long id
     ) {
-        featureService.deactivate(companyId, id);
-        return ResponseEntity.ok(ApiResponse.success("Feature deactivated successfully"));
+        FeatureDeactivationResultDto result = featureService.deactivate(companyId, id);
+        String message = result.affectedRoomCount() > 0
+                ? "Feature deactivated and removed from " + result.affectedRoomCount() + " room(s)"
+                : "Feature deactivated successfully";
+        return ResponseEntity.ok(ApiResponse.success(message, result));
     }
 
     /**
      * Pasif bir feature'ı tekrar aktif eder.
      */
+    @PreAuthorize("hasAuthority('FEATURE_ACTIVATE')")
     @PatchMapping("/{id}/activate")
     public ResponseEntity<ApiResponse<Void>> activate(
             @PathVariable Long companyId,
