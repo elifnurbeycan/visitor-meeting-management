@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -30,6 +31,7 @@ public class PermissionController {
     /**
      * Var olan bir permission'ın görünen adını/açıklamasını günceller.
      */
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<PermissionResponseDto>> update(
             @PathVariable Long id,
@@ -42,6 +44,7 @@ public class PermissionController {
     /**
      * ID'ye göre tekil bir permission getirir.
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<PermissionResponseDto>> getById(@PathVariable Long id) {
         PermissionResponseDto permission = permissionService.getById(id);
@@ -51,6 +54,7 @@ public class PermissionController {
     /**
      * Sabit PermissionCode değerine göre tekil bir permission getirir.
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/code/{code}")
     public ResponseEntity<ApiResponse<PermissionResponseDto>> getByCode(@PathVariable PermissionCode code) {
         PermissionResponseDto permission = permissionService.getByCode(code);
@@ -62,6 +66,7 @@ public class PermissionController {
      * Varsayılan: sayfa boyutu 20, isme göre artan sıralama.
      */
     @GetMapping
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<PermissionResponseDto>>> getAll(
             @PageableDefault(size = 20, sort = "name") Pageable pageable
     ) {
@@ -72,6 +77,7 @@ public class PermissionController {
     /**
      * Aktif/pasif durumuna göre filtrelenmiş permission'ları sayfalanmış şekilde listeler.
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/by-active")
     public ResponseEntity<ApiResponse<PageResponse<PermissionResponseDto>>> getAllByActive(
             @RequestParam boolean active,
@@ -85,6 +91,7 @@ public class PermissionController {
     /**
      * Kategoriye göre filtrelenmiş permission'ları sayfalanmış şekilde listeler.
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/by-category")
     public ResponseEntity<ApiResponse<PageResponse<PermissionResponseDto>>> getAllByCategory(
             @RequestParam PermissionCategory category,
@@ -98,6 +105,7 @@ public class PermissionController {
     /**
      * Hem aktiflik durumuna hem de kategoriye göre filtrelenmiş permission'ları listeler.
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/by-active-and-category")
     public ResponseEntity<ApiResponse<PageResponse<PermissionResponseDto>>> getAllByActiveAndCategory(
             @RequestParam boolean active,
@@ -112,6 +120,7 @@ public class PermissionController {
     /**
      * İsim veya açıklama üzerinde anahtar kelime araması yapar.
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<PermissionResponseDto>>> search(
             @RequestParam(defaultValue = "true") boolean active,
@@ -127,6 +136,7 @@ public class PermissionController {
      * Bir kategorideki permission'ları displayOrder'a göre sıralı listeler
      * (yetki yönetimi ekranında gruplu/sıralı göstermek için).
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/by-category/ordered")
     public ResponseEntity<ApiResponse<PageResponse<PermissionResponseDto>>> getAllByCategoryOrdered(
             @RequestParam PermissionCategory category,
@@ -140,6 +150,7 @@ public class PermissionController {
     /**
      * Bir kategorideki toplam permission sayısını döner.
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/by-category/count")
     public ResponseEntity<ApiResponse<Long>> countByCategory(@RequestParam PermissionCategory category) {
         long count = permissionService.countByCategory(category);
@@ -149,6 +160,7 @@ public class PermissionController {
     /**
      * Sistem tanımlı ya da custom permission sayısını döner.
      */
+    @PreAuthorize("hasAuthority('PERMISSION_VIEW') or hasRole('SUPER_ADMIN')")
     @GetMapping("/by-system/count")
     public ResponseEntity<ApiResponse<Long>> countBySystemPermission(@RequestParam boolean systemPermission) {
         long count = permissionService.countBySystemPermission(systemPermission);
@@ -158,6 +170,7 @@ public class PermissionController {
     /**
      * Bir permission'ı pasif hale getirir. Sistem tanımlı permission'lar pasife alınamaz.
      */
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PatchMapping("/{id}/deactivate")
     public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
         permissionService.deactivate(id);
@@ -167,6 +180,7 @@ public class PermissionController {
     /**
      * Pasif bir permission'ı tekrar aktif eder.
      */
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     @PatchMapping("/{id}/activate")
     public ResponseEntity<ApiResponse<Void>> activate(@PathVariable Long id) {
         permissionService.activate(id);
