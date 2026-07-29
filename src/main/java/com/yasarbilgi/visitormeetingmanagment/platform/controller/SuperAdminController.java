@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.platform.controller;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogExportService;
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
 import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
 import com.yasarbilgi.visitormeetingmanagment.company.dto.response.CompanyResponseDto;
@@ -9,6 +10,8 @@ import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class SuperAdminController {
 
     private final SuperAdminService superAdminService;
+    private final AuditLogExportService auditLogExportService;
 
     // ----- SuperAdmin'in kendi yönetimi -----
 
@@ -147,5 +151,22 @@ public class SuperAdminController {
     ) {
         UserResponseDto updated = superAdminService.forceTransferCompanyOwnership(companyId, newOwnerId);
         return ResponseEntity.ok(ApiResponse.success("Ownership forcibly transferred", updated));
+    }
+
+    @GetMapping("/audit-logs/export")
+    public ResponseEntity<byte[]> exportAuditLogs(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) String targetType
+    ) {
+        byte[] excelBytes = auditLogExportService.exportForSuperAdmin(companyId, targetType);
+
+        String filename = (companyId != null)
+                ? "audit-log-company-" + companyId + ".xlsx"
+                : "audit-log-all-companies.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelBytes);
     }
 }
