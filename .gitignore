@@ -34,3 +34,7 @@ build/
 
 ### Application Config ###
 application-dev.yaml
+
+### macOS ###
+.DS_Store
+**/.DS_Store
