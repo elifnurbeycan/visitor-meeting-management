@@ -16,11 +16,6 @@ import org.springframework.web.bind.annotation.*;
 /**
  * SuperAdmin (platform seviyesi) için REST endpoint'leri.
  * URL şeması: /api/v1/platform/...
- *
- * Bu controller, normal tenant kullanıcılarından tamamen ayrı bir yetki
- * seviyesini temsil eder. Security fazında, bu endpoint'lerin tamamı
- * @PreAuthorize("hasRole('SUPER_ADMIN')") ile korunacak ve ayrı bir
- * authentication filter zincirine bağlanacak.
  */
 @RestController
 @RequestMapping("/api/v1/platform")

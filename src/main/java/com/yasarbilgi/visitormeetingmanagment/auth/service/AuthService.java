@@ -17,4 +17,6 @@ public interface AuthService {
 
     LoginResponseDto changePassword(Long userId, String currentPassword, String newPassword);
 
+    LoginResponseDto changeSuperAdminPassword(Long superAdminId, String currentPassword, String newPassword);
+
 }

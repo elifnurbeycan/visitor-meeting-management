@@ -9,6 +9,8 @@ import com.yasarbilgi.visitormeetingmanagment.platform.entity.SuperAdmin;
 import com.yasarbilgi.visitormeetingmanagment.platform.mapper.SuperAdminMapper;
 import com.yasarbilgi.visitormeetingmanagment.platform.repository.SuperAdminRepository;
 import com.yasarbilgi.visitormeetingmanagment.platform.service.SuperAdminService;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +37,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     private final SuperAdminMapper superAdminMapper;
     private final CompanyService companyService;
     private final UserService userService;
+    private final CurrentUserProvider currentUserProvider;
 
     // ----- SuperAdmin'in kendi yönetimi -----
 
@@ -93,6 +96,15 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     @Transactional
     public void deactivate(Long id) {
         log.warn("Deactivation requested for super admin with id: {}", id);
+
+        Long currentSuperAdminId = currentUserProvider.getCurrentUser()
+                .map(AuthenticatedUser::userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
+
+        if (!currentSuperAdminId.equals(id)) {
+            log.warn("Super admin {} attempted to deactivate another super admin: {}", currentSuperAdminId, id);
+            throw new BusinessException(ErrorCode.SUPER_ADMIN_CANNOT_DEACTIVATE_ANOTHER);
+        }
 
         long activeCount = superAdminRepository.countByActive(true);
         if (activeCount <= 1) {
