@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.job.service;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -12,6 +13,7 @@ import com.yasarbilgi.visitormeetingmanagment.job.repository.JobTitleRepository;
 import com.yasarbilgi.visitormeetingmanagment.job.service.impl.JobTitleServiceImpl;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.role.repository.RoleRepository;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +56,12 @@ class JobTitleServiceImplTest {
 
     @Mock
     private JobTitleMapper jobTitleMapper;
+
+    @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private JobTitleServiceImpl jobTitleService;
