@@ -9,6 +9,8 @@ import com.yasarbilgi.visitormeetingmanagment.platform.entity.SuperAdmin;
 import com.yasarbilgi.visitormeetingmanagment.platform.mapper.SuperAdminMapper;
 import com.yasarbilgi.visitormeetingmanagment.platform.repository.SuperAdminRepository;
 import com.yasarbilgi.visitormeetingmanagment.platform.service.impl.SuperAdminServiceImpl;
+import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +47,9 @@ class SuperAdminServiceImplTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private SuperAdminServiceImpl superAdminService;
@@ -244,6 +249,12 @@ class SuperAdminServiceImplTest {
 
     @Test
     void deactivate_shouldSucceed_whenMoreThanOneAdminActive() {
+        AuthenticatedUser currentUser = AuthenticatedUser.builder()
+                .userId(SUPER_ADMIN_ID)
+                .superAdmin(true)
+                .build();
+        when(currentUserProvider.getCurrentUser()).thenReturn(Optional.of(currentUser));
+
         when(superAdminRepository.countByActive(true))
                 .thenReturn(2L);
 
@@ -257,6 +268,12 @@ class SuperAdminServiceImplTest {
 
     @Test
     void deactivate_shouldThrowException_whenLastActiveAdmin() {
+        AuthenticatedUser currentUser = AuthenticatedUser.builder()
+                .userId(SUPER_ADMIN_ID)
+                .superAdmin(true)
+                .build();
+        when(currentUserProvider.getCurrentUser()).thenReturn(Optional.of(currentUser));
+
         when(superAdminRepository.countByActive(true))
                 .thenReturn(1L);
 
@@ -278,6 +295,12 @@ class SuperAdminServiceImplTest {
 
     @Test
     void deactivate_shouldThrowException_whenNoActiveAdminExists() {
+        AuthenticatedUser currentUser = AuthenticatedUser.builder()
+                .userId(SUPER_ADMIN_ID)
+                .superAdmin(true)
+                .build();
+        when(currentUserProvider.getCurrentUser()).thenReturn(Optional.of(currentUser));
+
         when(superAdminRepository.countByActive(true))
                 .thenReturn(0L);
 
@@ -293,6 +316,12 @@ class SuperAdminServiceImplTest {
 
     @Test
     void deactivate_shouldThrowException_whenSuperAdminNotFound() {
+        AuthenticatedUser currentUser = AuthenticatedUser.builder()
+                .userId(SUPER_ADMIN_ID)
+                .superAdmin(true)
+                .build();
+        when(currentUserProvider.getCurrentUser()).thenReturn(Optional.of(currentUser));
+
         when(superAdminRepository.countByActive(true))
                 .thenReturn(2L);
 
