@@ -10,6 +10,8 @@ import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
 import com.yasarbilgi.visitormeetingmanagment.company.mapper.CompanyMapper;
 import com.yasarbilgi.visitormeetingmanagment.company.repository.CompanyRepository;
 import com.yasarbilgi.visitormeetingmanagment.company.service.impl.CompanyServiceImpl;
+import com.yasarbilgi.visitormeetingmanagment.feature.entity.Feature;
+import com.yasarbilgi.visitormeetingmanagment.feature.repository.FeatureRepository;
 import com.yasarbilgi.visitormeetingmanagment.platform.enums.CompanyStatus;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.Role;
 import com.yasarbilgi.visitormeetingmanagment.role.entity.RoleTemplate;
@@ -77,6 +79,9 @@ class CompanyServiceImplTest {
 
     @Mock
     private CurrentUserProvider currentUserProvider;
+
+    @Mock
+    private FeatureRepository featureRepository;
 
     @InjectMocks
     private CompanyServiceImpl companyService;
@@ -624,6 +629,8 @@ class CompanyServiceImplTest {
                 ));
         when(roleRepository.save(any(Role.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
+        when(featureRepository.save(any(Feature.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(currentUserProvider.getCurrentUser())
                 .thenReturn(Optional.of(authenticatedUser));
         when(companyMapper.toResponseDto(company))
@@ -639,6 +646,8 @@ class CompanyServiceImplTest {
 
         verify(roleRepository, times(2))
                 .save(any(Role.class));
+        verify(featureRepository, times(7))
+                .save(any(Feature.class));
 
         verify(auditLogService).log(
                 eq(COMPANY_ID),
@@ -656,6 +665,8 @@ class CompanyServiceImplTest {
                 .thenReturn(Optional.of(company));
         when(roleTemplateRepository.findAllByActiveTrue())
                 .thenReturn(List.of());
+        when(featureRepository.save(any(Feature.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         when(currentUserProvider.getCurrentUser())
                 .thenReturn(Optional.empty());
         when(companyMapper.toResponseDto(company))
@@ -665,6 +676,9 @@ class CompanyServiceImplTest {
 
         assertThat(company.getStatus())
                 .isEqualTo(CompanyStatus.ACTIVE);
+
+        verify(featureRepository, times(7))
+                .save(any(Feature.class));
 
         verify(auditLogService).log(
                 eq(COMPANY_ID),
