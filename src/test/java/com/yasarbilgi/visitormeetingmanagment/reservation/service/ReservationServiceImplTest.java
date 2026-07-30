@@ -454,4 +454,28 @@ class ReservationServiceImplTest {
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.RESERVATION_ACCESS_DENIED);
     }
 
+    // ----- getMyReservations() -----
+
+    @Test
+    void getMyReservations_shouldReturnPagedReservations() {
+        // Arrange
+        Pageable pageable = Pageable.unpaged();
+        Page<Reservation> page = new PageImpl<>(List.of(reservation));
+
+        when(reservationRepository.findAllByOrganizerIdAndCompanyId(ORGANIZER_ID, COMPANY_ID, pageable))
+                .thenReturn(page);
+        when(reservationMapper.toResponseDto(reservation))
+                .thenReturn(responseDto);
+
+        // Act
+        Page<ReservationResponseDto> result = reservationService.getMyReservations(COMPANY_ID, ORGANIZER_ID, pageable);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        verify(reservationRepository, times(1))
+                .findAllByOrganizerIdAndCompanyId(ORGANIZER_ID, COMPANY_ID, pageable);
+    }
+
+
 }
