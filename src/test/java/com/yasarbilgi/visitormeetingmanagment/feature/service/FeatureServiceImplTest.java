@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.feature.service;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -10,6 +11,8 @@ import com.yasarbilgi.visitormeetingmanagment.feature.entity.Feature;
 import com.yasarbilgi.visitormeetingmanagment.feature.mapper.FeatureMapper;
 import com.yasarbilgi.visitormeetingmanagment.feature.repository.FeatureRepository;
 import com.yasarbilgi.visitormeetingmanagment.feature.service.impl.FeatureServiceImpl;
+import com.yasarbilgi.visitormeetingmanagment.room.repository.RoomRepository;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +23,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,6 +54,15 @@ class FeatureServiceImplTest {
 
     @Mock
     private FeatureMapper featureMapper;
+
+    @Mock
+    private RoomRepository roomRepository;
+
+    @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private FeatureServiceImpl featureService;
@@ -319,6 +332,7 @@ class FeatureServiceImplTest {
     void deactivate_shouldDeactivateFeature_whenFound() {
         // Arrange
         when(featureRepository.findByIdAndCompanyId(FEATURE_ID, COMPANY_ID)).thenReturn(Optional.of(feature));
+        when(roomRepository.findAllByFeatures_IdAndCompanyId(FEATURE_ID, COMPANY_ID)).thenReturn(Collections.emptyList());
 
         // Act
         featureService.deactivate(COMPANY_ID, FEATURE_ID);
