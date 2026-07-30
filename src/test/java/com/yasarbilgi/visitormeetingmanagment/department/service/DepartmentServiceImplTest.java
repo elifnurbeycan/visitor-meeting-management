@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.department.service;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -10,6 +11,7 @@ import com.yasarbilgi.visitormeetingmanagment.department.entity.Department;
 import com.yasarbilgi.visitormeetingmanagment.department.mapper.DepartmentMapper;
 import com.yasarbilgi.visitormeetingmanagment.department.repository.DepartmentRepository;
 import com.yasarbilgi.visitormeetingmanagment.department.service.impl.DepartmentServiceImpl;
+import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,6 +52,12 @@ class DepartmentServiceImplTest {
 
     @Mock
     private DepartmentMapper departmentMapper;
+
+    @Mock
+    private AuditLogService auditLogService;
+
+    @Mock
+    private CurrentUserProvider currentUserProvider;
 
     @InjectMocks
     private DepartmentServiceImpl departmentService;
