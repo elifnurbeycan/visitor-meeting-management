@@ -648,6 +648,15 @@ class AuthServiceImplTest {
         when(userRepository.findById(USER_ID))
                 .thenReturn(Optional.of(user));
 
+        when(user.getCompany())
+                .thenReturn(company);
+
+        when(company.getId())
+                .thenReturn(COMPANY_ID);
+
+        when(user.getId())
+                .thenReturn(USER_ID);
+
         when(user.getPasswordHash())
                 .thenReturn("old-password-hash");
 
@@ -658,6 +667,18 @@ class AuthServiceImplTest {
 
         when(passwordEncoder.encode("new-password"))
                 .thenReturn("new-password-hash");
+
+        when(permissionResolutionService.resolveEffectivePermissions(USER_ID))
+                .thenReturn(Set.of());
+
+        when(jwtService.generateAccessToken(
+                org.mockito.ArgumentMatchers.eq(USER_ID),
+                org.mockito.ArgumentMatchers.eq(COMPANY_ID),
+                any()
+        )).thenReturn(ACCESS_TOKEN);
+
+        when(jwtService.generateRefreshToken())
+                .thenReturn(REFRESH_TOKEN);
 
         authService.changePassword(
                 USER_ID,
