@@ -975,6 +975,8 @@ class UserServiceImplTest {
     void assignRole_shouldAssignRoleAndWriteAuditLog() {
         mockCurrentUser(USER_ID);
 
+        user.getRoles().remove(role);
+
         when(userRepository.findById(USER_ID))
                 .thenReturn(Optional.of(user));
 
