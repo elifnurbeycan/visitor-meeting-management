@@ -456,7 +456,26 @@ public enum ErrorCode {
             "department.nameRequired"
     ),
 
+    // Generic HTTP / request-shape errors
+    METHOD_NOT_ALLOWED(
+            HttpStatus.METHOD_NOT_ALLOWED,
+            "common.methodNotAllowed"
+    ),
 
+    MISSING_REQUEST_PARAMETER(
+            HttpStatus.BAD_REQUEST,
+            "common.missingParameter"
+    ),
+
+    TYPE_MISMATCH(
+            HttpStatus.BAD_REQUEST,
+            "common.typeMismatch"
+    ),
+
+    MALFORMED_REQUEST_BODY(
+            HttpStatus.BAD_REQUEST,
+            "common.malformedRequestBody"
+    ),
 
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
