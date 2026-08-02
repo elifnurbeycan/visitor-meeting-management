@@ -477,6 +477,11 @@ public enum ErrorCode {
             "common.malformedRequestBody"
     ),
 
+    TOO_MANY_REQUESTS(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "common.tooManyRequests"
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "common.internalServerError"

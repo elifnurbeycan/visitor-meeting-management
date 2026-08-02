@@ -27,5 +27,10 @@ management:
       exposure:
         include: health, info, metrics, loggers, circuitbreakers
 
+rate-limit:
+  login:
+    max-attempts: 5
+    window-seconds: 60
+
 cors:
   allowed-origins: http://localhost:3000,http://localhost:5173,http://localhost:4173,http://10.104.102.27:4173

@@ -1,6 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.common.config;
 
 import com.yasarbilgi.visitormeetingmanagment.common.idempotency.filter.IdempotencyFilter;
+import com.yasarbilgi.visitormeetingmanagment.common.ratelimit.filter.LoginRateLimitFilter;
 import com.yasarbilgi.visitormeetingmanagment.security.filter.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,11 +26,13 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final IdempotencyFilter idempotencyFilter;
+    private final LoginRateLimitFilter loginRateLimitFilter;
 
     @Value("${cors.allowed-origins}")
     private List<String> allowedOrigins;
 
-    private final IdempotencyFilter idempotencyFilter;
+
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -57,6 +60,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(loginRateLimitFilter, JwtAuthenticationFilter.class)
                 .addFilterAfter(idempotencyFilter, JwtAuthenticationFilter.class);
 
         return http.build();
