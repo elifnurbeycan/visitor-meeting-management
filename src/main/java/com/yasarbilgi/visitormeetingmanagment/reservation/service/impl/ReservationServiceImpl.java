@@ -1,6 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.reservation.service.impl;
 
 import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
+import com.yasarbilgi.visitormeetingmanagment.common.constant.AppConstants;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
@@ -30,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
@@ -86,7 +86,7 @@ public class ReservationServiceImpl implements ReservationService {
         }
 
         Instant deadlineCandidate = Instant.now().plus(24, ChronoUnit.HOURS);
-        Instant startTimeAsInstant = dto.startTime().atZone(ZoneId.systemDefault()).toInstant();
+        Instant startTimeAsInstant = dto.startTime().atZone(AppConstants.ISTANBUL_ZONE).toInstant();
         Instant approvalDeadline = deadlineCandidate.isBefore(startTimeAsInstant)
                 ? deadlineCandidate
                 : startTimeAsInstant;

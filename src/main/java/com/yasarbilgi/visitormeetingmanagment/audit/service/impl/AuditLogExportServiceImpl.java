@@ -3,6 +3,7 @@ package com.yasarbilgi.visitormeetingmanagment.audit.service.impl;
 import com.yasarbilgi.visitormeetingmanagment.audit.entity.AuditLog;
 import com.yasarbilgi.visitormeetingmanagment.audit.repository.AuditLogRepository;
 import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogExportService;
+import com.yasarbilgi.visitormeetingmanagment.common.constant.AppConstants;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,7 @@ import java.util.List;
 public class AuditLogExportServiceImpl implements AuditLogExportService {
 
     private static final DateTimeFormatter DATE_FORMATTER =
-            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(ZoneId.systemDefault());
+            DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm:ss").withZone(AppConstants.ISTANBUL_ZONE);
 
     private static final String[] HEADERS = {
             "ID", "Şirket", "Kullanıcı ID", "İşlem", "Hedef Tip", "Hedef ID", "Detay", "Tarih"
