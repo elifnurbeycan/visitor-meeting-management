@@ -13,6 +13,8 @@ spring:
     locale-resolver: accept_header
   mail:
     host: localhost
+  jackson:
+    time-zone: Europe/Istanbul
 
 server:
   servlet:
