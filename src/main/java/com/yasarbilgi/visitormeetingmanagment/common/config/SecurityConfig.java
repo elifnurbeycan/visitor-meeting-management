@@ -52,6 +52,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/companies").permitAll()
+                        .requestMatchers("/api/v1/auth/my-login-history").authenticated()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/platform/auth/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()

@@ -119,7 +119,7 @@ public class ReservationServiceImpl implements ReservationService {
                 "RESERVATION_CREATED",
                 "RESERVATION",
                 saved.getId(),
-                "Reservation '" + saved.getTitle() + "' requested for room " + room.getId()
+                "Reservation '" + saved.getTitle() + "' requested for room '" + room.getName() + "'"
         );
 
         return reservationMapper.toResponseDto(saved);
@@ -360,7 +360,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         auditLogService.log(
                 companyId, organizerId, "PARTICIPANT_ADDED", "RESERVATION", reservationId,
-                "User " + userId + " added as participant to reservation '" + reservation.getTitle() + "'"
+                "User '" + newParticipant.getFullName() + "' added as participant to reservation '" + reservation.getTitle() + "'"
         );
 
         if (reservation.getStatus() == ReservationStatus.ACTIVE) {
@@ -390,7 +390,7 @@ public class ReservationServiceImpl implements ReservationService {
 
         auditLogService.log(
                 companyId, organizerId, "PARTICIPANT_REMOVED", "RESERVATION", reservationId,
-                "User " + userId + " removed as participant from reservation '" + reservation.getTitle() + "'"
+                "User '" + participant.getFullName() + "' removed as participant from reservation '" + reservation.getTitle() + "'"
         );
 
         if (reservation.getStatus() == ReservationStatus.ACTIVE) {

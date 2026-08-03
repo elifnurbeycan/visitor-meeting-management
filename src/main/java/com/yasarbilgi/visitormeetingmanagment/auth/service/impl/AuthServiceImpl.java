@@ -1,5 +1,6 @@
 package com.yasarbilgi.visitormeetingmanagment.auth.service.impl;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.LoginResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.MeResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.service.AuthService;
@@ -40,6 +41,7 @@ import java.util.stream.Collectors;
 public class AuthServiceImpl implements AuthService {
 
     private static final String TOKEN_TYPE = "Bearer";
+    private static final String TARGET_TYPE_AUTH = "AUTH";
 
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
@@ -49,7 +51,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final PermissionResolutionService permissionResolutionService;
     private final PermissionCacheService permissionCacheService;
-
+    private final AuditLogService auditLogService;
 
     @Value("${jwt.access-token-expiration}")
     private long accessTokenExpirationMs;
@@ -65,21 +67,37 @@ public class AuthServiceImpl implements AuthService {
         Company company = companyRepository.findBySlug(companySlug)
                 .orElseThrow(() -> {
                     log.warn("Login failed: company not found for slug: {}", companySlug);
+                    auditLogService.log(
+                            null, null, "LOGIN_FAILED", TARGET_TYPE_AUTH, null,
+                            "Login failed: company not found for slug '" + companySlug + "'"
+                    );
                     return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
                 });
 
         if (!company.isActive()) {
             log.warn("Login failed: company is deactivated: {}", companySlug);
+            auditLogService.log(
+                    company.getId(), null, "LOGIN_FAILED", TARGET_TYPE_AUTH, null,
+                    "Login failed: company '" + company.getName() + "' is deactivated"
+            );
             throw new BusinessException(ErrorCode.COMPANY_INACTIVE);
         }
 
         if (company.getStatus() == CompanyStatus.PENDING_APPROVAL) {
             log.warn("Login failed: company approval pending: {}", companySlug);
+            auditLogService.log(
+                    company.getId(), null, "LOGIN_FAILED", TARGET_TYPE_AUTH, null,
+                    "Login failed: company '" + company.getName() + "' approval pending"
+            );
             throw new BusinessException(ErrorCode.COMPANY_APPROVAL_PENDING);
         }
 
         if (company.getStatus() == CompanyStatus.REJECTED) {
             log.warn("Login failed: company rejected: {}", companySlug);
+            auditLogService.log(
+                    company.getId(), null, "LOGIN_FAILED", TARGET_TYPE_AUTH, null,
+                    "Login failed: company '" + company.getName() + "' rejected"
+            );
             throw new BusinessException(ErrorCode.COMPANY_REJECTED);
         }
 
@@ -87,11 +105,19 @@ public class AuthServiceImpl implements AuthService {
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             log.warn("Login failed: invalid password for identifier: {}", identifier);
+            auditLogService.log(
+                    company.getId(), user.getId(), "LOGIN_FAILED", TARGET_TYPE_AUTH, user.getId(),
+                    "Login failed: invalid password for user '" + user.getFullName() + "'"
+            );
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         if (!user.isActive()) {
             log.warn("Login failed: user is inactive: {}", identifier);
+            auditLogService.log(
+                    company.getId(), user.getId(), "LOGIN_FAILED", TARGET_TYPE_AUTH, user.getId(),
+                    "Login failed: user '" + user.getFullName() + "' is inactive"
+            );
             throw new BusinessException(ErrorCode.USER_INACTIVE);
         }
 
@@ -103,10 +129,18 @@ public class AuthServiceImpl implements AuthService {
         );
         String refreshToken = issueRefreshToken(user, null);
 
+        auditLogService.log(
+                user.getCompany().getId(),
+                user.getId(),
+                "LOGIN_SUCCESS",
+                TARGET_TYPE_AUTH,
+                user.getId(),
+                "User '" + user.getFullName() + "' logged in"
+        );
+
         log.info("Login successful for user: {}", user.getId());
         return buildLoginResponse(accessToken, refreshToken, user.isMustChangePassword());
     }
-
 
     @Override
     @Transactional
@@ -116,21 +150,42 @@ public class AuthServiceImpl implements AuthService {
         SuperAdmin superAdmin = superAdminRepository.findByEmail(email)
                 .orElseThrow(() -> {
                     log.warn("SuperAdmin login failed: not found for email: {}", email);
+                    auditLogService.log(
+                            null, null, "LOGIN_FAILED", TARGET_TYPE_AUTH, null,
+                            "SuperAdmin login failed: not found for email '" + email + "'"
+                    );
                     return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
                 });
 
         if (!passwordEncoder.matches(password, superAdmin.getPasswordHash())) {
             log.warn("SuperAdmin login failed: invalid password for email: {}", email);
+            auditLogService.log(
+                    null, superAdmin.getId(), "LOGIN_FAILED", TARGET_TYPE_AUTH, superAdmin.getId(),
+                    "SuperAdmin login failed: invalid password for '" + superAdmin.getFullName() + "'"
+            );
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
         if (!superAdmin.isActive()) {
             log.warn("SuperAdmin login failed: account not approved yet: {}", email);
+            auditLogService.log(
+                    null, superAdmin.getId(), "LOGIN_FAILED", TARGET_TYPE_AUTH, superAdmin.getId(),
+                    "SuperAdmin login failed: account not active for '" + superAdmin.getFullName() + "'"
+            );
             throw new BusinessException(ErrorCode.SUPER_ADMIN_NOT_ACTIVE);
         }
 
         String accessToken = jwtService.generateSuperAdminAccessToken(superAdmin.getId());
         String refreshToken = issueRefreshToken(null, superAdmin);
+
+        auditLogService.log(
+                null,
+                superAdmin.getId(),
+                "LOGIN_SUCCESS",
+                TARGET_TYPE_AUTH,
+                superAdmin.getId(),
+                "SuperAdmin '" + superAdmin.getFullName() + "' logged in"
+        );
 
         log.info("SuperAdmin login successful: {}", superAdmin.getId());
         return buildLoginResponse(accessToken, refreshToken, false);
@@ -210,8 +265,34 @@ public class AuthServiceImpl implements AuthService {
         log.info("Logout requested");
 
         String hash = hashToken(refreshToken);
-        refreshTokenRepository.findByTokenHash(hash)
-                .ifPresent(RefreshToken::revoke);
+        refreshTokenRepository.findByTokenHash(hash).ifPresent(token -> {
+            token.revoke();
+
+            User user = token.getUser();
+            if (user != null) {
+                auditLogService.log(
+                        user.getCompany().getId(),
+                        user.getId(),
+                        "LOGOUT",
+                        TARGET_TYPE_AUTH,
+                        user.getId(),
+                        "User '" + user.getFullName() + "' logged out"
+                );
+                return;
+            }
+
+            SuperAdmin superAdmin = token.getSuperAdmin();
+            if (superAdmin != null) {
+                auditLogService.log(
+                        null,
+                        superAdmin.getId(),
+                        "LOGOUT",
+                        TARGET_TYPE_AUTH,
+                        superAdmin.getId(),
+                        "SuperAdmin '" + superAdmin.getFullName() + "' logged out"
+                );
+            }
+        });
     }
 
     /**
@@ -236,10 +317,6 @@ public class AuthServiceImpl implements AuthService {
         user.changePasswordHash(passwordEncoder.encode(newPassword));
         user.clearMustChangePasswordFlag();
 
-        // Diğer tüm cihazlardaki/oturumlardaki refresh token'lar iptal edilir —
-        // güvenlik amaçlı. Ama BU isteği yapan kullanıcı zaten mevcut şifresini
-        // doğrulayarak kimliğini kanıtladığı için, kendisine kesintisiz devam
-        // edebilmesi adına hemen yeni bir token çifti veriyoruz.
         refreshTokenRepository.revokeAllByUserId(userId, Instant.now());
 
         Set<String> permissions = permissionResolutionService.resolveEffectivePermissions(userId);
@@ -327,6 +404,10 @@ public class AuthServiceImpl implements AuthService {
             return userRepository.findByCompanyIdAndEmail(companyId, identifier)
                     .orElseThrow(() -> {
                         log.warn("Login failed: user not found for email: {}", identifier);
+                        auditLogService.log(
+                                companyId, null, "LOGIN_FAILED", TARGET_TYPE_AUTH, null,
+                                "Login failed: no user found for email '" + identifier + "'"
+                        );
                         return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
                     });
         }
@@ -334,11 +415,19 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByUsername(identifier)
                 .orElseThrow(() -> {
                     log.warn("Login failed: user not found for username: {}", identifier);
+                    auditLogService.log(
+                            companyId, null, "LOGIN_FAILED", TARGET_TYPE_AUTH, null,
+                            "Login failed: no user found for username '" + identifier + "'"
+                    );
                     return new BusinessException(ErrorCode.INVALID_CREDENTIALS);
                 });
 
         if (!user.getCompany().getId().equals(companyId)) {
             log.warn("Login failed: username {} does not belong to company {}", identifier, companyId);
+            auditLogService.log(
+                    companyId, null, "LOGIN_FAILED", TARGET_TYPE_AUTH, null,
+                    "Login failed: username '" + identifier + "' does not belong to this company"
+            );
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
 
