@@ -6,15 +6,23 @@ import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
 import com.yasarbilgi.visitormeetingmanagment.company.dto.response.CompanyResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.platform.dto.response.SuperAdminResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.platform.service.SuperAdminService;
+import com.yasarbilgi.visitormeetingmanagment.report.dto.response.CancellationReportDto;
+import com.yasarbilgi.visitormeetingmanagment.report.dto.response.RoomUsageReportDto;
+import com.yasarbilgi.visitormeetingmanagment.report.service.ReportExportService;
+import com.yasarbilgi.visitormeetingmanagment.report.service.ReportService;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * SuperAdmin (platform seviyesi) için REST endpoint'leri.
@@ -28,6 +36,9 @@ public class SuperAdminController {
 
     private final SuperAdminService superAdminService;
     private final AuditLogExportService auditLogExportService;
+    private final ReportService reportService;
+    private final ReportExportService reportExportService;
+
 
     // ----- SuperAdmin'in kendi yönetimi -----
 
@@ -169,4 +180,65 @@ public class SuperAdminController {
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(excelBytes);
     }
+
+    // ----- Raporlar (platform geneli) -----
+
+    @GetMapping("/reports/room-usage")
+    public ResponseEntity<ApiResponse<List<RoomUsageReportDto>>> getRoomUsageReport(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        List<RoomUsageReportDto> report =
+                reportService.getRoomUsageForSuperAdmin(companyId, from, to);
+        return ResponseEntity.ok(ApiResponse.success(report));
+    }
+
+    @GetMapping("/reports/room-usage/export")
+    public ResponseEntity<byte[]> exportRoomUsageReport(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        byte[] excelBytes = reportExportService.exportRoomUsageForSuperAdmin(companyId, from, to);
+
+        String filename = (companyId != null)
+                ? "room-usage-company-" + companyId + ".xlsx"
+                : "room-usage-all-companies.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelBytes);
+    }
+
+    @GetMapping("/reports/cancellations")
+    public ResponseEntity<ApiResponse<CancellationReportDto>> getCancellationReport(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        CancellationReportDto report =
+                reportService.getCancellationReportForSuperAdmin(companyId, from, to);
+        return ResponseEntity.ok(ApiResponse.success(report));
+    }
+
+    @GetMapping("/reports/cancellations/export")
+    public ResponseEntity<byte[]> exportCancellationReport(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        byte[] excelBytes = reportExportService.exportCancellationsForSuperAdmin(companyId, from, to);
+
+        String filename = (companyId != null)
+                ? "cancellations-company-" + companyId + ".xlsx"
+                : "cancellations-all-companies.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelBytes);
+    }
+
 }
