@@ -2,6 +2,8 @@ package com.yasarbilgi.visitormeetingmanagment.reservation.repository;
 
 import com.yasarbilgi.visitormeetingmanagment.reservation.entity.Reservation;
 import com.yasarbilgi.visitormeetingmanagment.reservation.enums.ReservationStatus;
+import com.yasarbilgi.visitormeetingmanagment.reservation.repository.projection.CancellationByUserProjection;
+import com.yasarbilgi.visitormeetingmanagment.reservation.repository.projection.RoomUsageProjection;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,8 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-public interface ReservationRepository
-        extends JpaRepository<Reservation, Long> {
+public interface ReservationRepository extends JpaRepository<Reservation, Long> {
 
     Optional<Reservation> findByIdAndCompanyId(
             Long id,
@@ -90,4 +91,42 @@ public interface ReservationRepository
             Pageable pageable
     );
 
+    @Query("""
+        SELECT r.room.id AS roomId,
+               r.room.name AS roomName,
+               COUNT(r) AS reservationCount,
+               SUM(timestampdiff(MINUTE, r.startTime, r.endTime)) AS totalMinutesBooked
+        FROM Reservation r
+        WHERE (:companyId IS NULL OR r.company.id = :companyId)
+        AND r.status IN :statuses
+        AND r.startTime >= :from
+        AND r.startTime < :to
+        GROUP BY r.room.id, r.room.name
+        ORDER BY COUNT(r) DESC
+        """)
+    List<RoomUsageProjection> findRoomUsage(
+            @Param("companyId") Long companyId,
+            @Param("statuses") List<ReservationStatus> statuses,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    @Query("""
+        SELECT r.organizer.id AS userId,
+               r.organizer.firstName AS firstName,
+               r.organizer.lastName AS lastName,
+               COUNT(r) AS cancelledCount
+        FROM Reservation r
+        WHERE (:companyId IS NULL OR r.company.id = :companyId)
+        AND r.status = 'CANCELLED'
+        AND r.startTime >= :from
+        AND r.startTime < :to
+        GROUP BY r.organizer.id, r.organizer.firstName, r.organizer.lastName
+        ORDER BY COUNT(r) DESC
+        """)
+    List<CancellationByUserProjection> findCancellationsByUser(
+            @Param("companyId") Long companyId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
 }

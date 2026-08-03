@@ -87,6 +87,15 @@ public class UserServiceImpl implements UserService {
 
         User saved = userRepository.save(user);
 
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "USER_CREATED",
+                "USER",
+                saved.getId(),
+                "User '" + saved.getFullName() + "' created"
+        );
+
         log.info("User created successfully with id: {}", saved.getId());
         return userMapper.toResponseDto(saved);
     }
@@ -119,6 +128,15 @@ public class UserServiceImpl implements UserService {
             Department department = resolveDepartment(companyId, dto.departmentId());
             user.changeDepartment(department);
         }
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "USER_UPDATED",
+                "USER",
+                userId,
+                "User '" + user.getFullName() + "' updated"
+        );
 
         log.info("User updated successfully with id: {}", userId);
         return userMapper.toResponseDto(user);
@@ -213,6 +231,15 @@ public class UserServiceImpl implements UserService {
         User user = findUserOrThrow(companyId, userId);
         user.deactivateIfAllowed();
         permissionCacheService.invalidate(userId);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "USER_DEACTIVATED",
+                "USER",
+                userId,
+                "User '" + user.getFullName() + "' deactivated"
+        );
     }
 
     @Override
@@ -223,6 +250,15 @@ public class UserServiceImpl implements UserService {
         User user = findUserOrThrow(companyId, userId);
         user.activate();
         permissionCacheService.invalidate(userId);
+
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "USER_ACTIVATED",
+                "USER",
+                userId,
+                "User '" + user.getFullName() + "' activated"
+        );
 
     }
 
@@ -313,6 +349,15 @@ public class UserServiceImpl implements UserService {
 
         permissionCacheService.invalidate(userId);
 
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "USER_PROMOTED_TO_OWNER",
+                "USER",
+                userId,
+                "User '" + user.getFullName() + "' promoted to owner"
+        );
+
         log.info("User promoted to owner successfully");
         return userMapper.toResponseDto(user);
     }
@@ -341,6 +386,15 @@ public class UserServiceImpl implements UserService {
         permissionCacheService.invalidate(currentOwnerId);
         permissionCacheService.invalidate(newOwnerId);
 
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "OWNERSHIP_TRANSFERRED",
+                "USER",
+                newOwnerId,
+                "Ownership transferred from user " + currentOwnerId + " to user " + newOwnerId
+        );
+
         log.info("Ownership transferred successfully");
         return userMapper.toResponseDto(newOwner);
     }
@@ -361,6 +415,15 @@ public class UserServiceImpl implements UserService {
         User newOwner = findUserOrThrow(companyId, newOwnerId);
         newOwner.promoteToOwner();
         permissionCacheService.invalidate(newOwnerId);
+
+        auditLogService.log(
+                companyId,
+                null,
+                "OWNERSHIP_FORCE_TRANSFERRED",
+                "USER",
+                newOwnerId,
+                "SuperAdmin force-transferred ownership to user " + newOwnerId
+        );
 
         log.warn("User {} force-promoted to owner in company {}", newOwnerId, companyId);
         return userMapper.toResponseDto(newOwner);
