@@ -1,9 +1,13 @@
 package com.yasarbilgi.visitormeetingmanagment.audit.entity;
 
-import com.yasarbilgi.visitormeetingmanagment.common.base.TenantBaseEntity;
+import com.yasarbilgi.visitormeetingmanagment.common.base.BaseEntity;
+import com.yasarbilgi.visitormeetingmanagment.company.entity.Company;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -18,6 +22,14 @@ import lombok.experimental.SuperBuilder;
 
  * actorUserId null olabilir — sistem tarafından otomatik tetiklenen
  * olaylarda (örn. scheduled expire job) bir insan aktör yoktur.
+
+ * NOT: Diğer şirket-içi entity'lerin aksine (Room, Reservation, User vb.),
+ * bu entity TenantBaseEntity'den DEĞİL, doğrudan BaseEntity'den türüyor —
+ * çünkü company alanının burada NULL olabilmesi gerekiyor (SuperAdmin'in
+ * kendi login/logout gibi hiçbir şirkete bağlı olmayan olayları için).
+ * TenantBaseEntity'deki company alanı ise kasıtlı olarak "nullable=false"
+ * (bkz. TenantBaseEntity) — bu davranışı SADECE AuditLog için gevşetmek üzere
+ * ayrı bir @ManyToOne tanımlandı, diğer entity'ler etkilenmedi.
  */
 @Getter
 @SuperBuilder
@@ -32,7 +44,11 @@ import lombok.experimental.SuperBuilder;
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class AuditLog extends TenantBaseEntity {
+public class AuditLog extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", updatable = false)
+    private Company company;
 
     @Column(name = "actor_user_id")
     private Long actorUserId;

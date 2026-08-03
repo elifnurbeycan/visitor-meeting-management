@@ -67,9 +67,9 @@ public class UserPermissionOverrideServiceImpl implements UserPermissionOverride
                 companyId,
                 currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
                 "PERMISSION_OVERRIDE_CREATED",
-                "USER",
+                "USER_PERMISSION",
                 user.getId(),
-                dto.type() + " override created for permission '" + permission.getCode() + "'"
+                dto.type() + " override created for permission '" + permission.getCode() + "' on user '" + user.getFullName() + "'"
         );
 
         log.info("User permission override created successfully with id: {}", saved.getId());
@@ -97,9 +97,9 @@ public class UserPermissionOverrideServiceImpl implements UserPermissionOverride
                 companyId,
                 currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
                 "PERMISSION_OVERRIDE_UPDATED",
-                "USER",
+                "USER_PERMISSION",
                 override.getUser().getId(),
-                "Override type changed to " + dto.type() + " for permission '" + override.getPermission().getCode() + "'"
+                "Override type changed to " + dto.type() + " for permission '" + override.getPermission().getCode() + "' on user '" + override.getUser().getFullName() + "'"
         );
 
         log.info("User permission override updated successfully with id: {}", id);
@@ -162,9 +162,9 @@ public class UserPermissionOverrideServiceImpl implements UserPermissionOverride
                 companyId,
                 currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
                 "PERMISSION_OVERRIDE_DEACTIVATED",
-                "USER",
+                "USER_PERMISSION",
                 override.getUser().getId(),
-                "Override deactivated for permission '" + override.getPermission().getCode() + "'"
+                "Override deactivated for permission '" + override.getPermission().getCode() + "' on user '" + override.getUser().getFullName() + "'"
         );
     }
 
@@ -181,9 +181,9 @@ public class UserPermissionOverrideServiceImpl implements UserPermissionOverride
                 companyId,
                 currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
                 "PERMISSION_OVERRIDE_ACTIVATED",
-                "USER",
+                "USER_PERMISSION",
                 override.getUser().getId(),
-                "Override activated for permission '" + override.getPermission().getCode() + "'"
+                "Override activated for permission '" + override.getPermission().getCode() + "' on user '" + override.getUser().getFullName() + "'"
         );
     }
 

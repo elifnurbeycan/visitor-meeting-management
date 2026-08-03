@@ -1,6 +1,8 @@
 package com.yasarbilgi.visitormeetingmanagment.platform.controller;
 
+import com.yasarbilgi.visitormeetingmanagment.audit.dto.response.AuditLogResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogExportService;
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
 import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
 import com.yasarbilgi.visitormeetingmanagment.company.dto.response.CompanyResponseDto;
@@ -13,6 +15,7 @@ import com.yasarbilgi.visitormeetingmanagment.report.service.ReportService;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -36,6 +39,7 @@ public class SuperAdminController {
 
     private final SuperAdminService superAdminService;
     private final AuditLogExportService auditLogExportService;
+    private final AuditLogService auditLogService;
     private final ReportService reportService;
     private final ReportExportService reportExportService;
 
@@ -164,12 +168,24 @@ public class SuperAdminController {
         return ResponseEntity.ok(ApiResponse.success("Ownership forcibly transferred", updated));
     }
 
+    @GetMapping("/audit-logs")
+    public ResponseEntity<ApiResponse<PageResponse<AuditLogResponseDto>>> getAuditLogs(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) List<String> targetTypes,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        PageResponse<AuditLogResponseDto> logs = PageResponse.of(
+                auditLogService.getLogsForSuperAdmin(companyId, targetTypes, pageable)
+        );
+        return ResponseEntity.ok(ApiResponse.success(logs));
+    }
+
     @GetMapping("/audit-logs/export")
     public ResponseEntity<byte[]> exportAuditLogs(
             @RequestParam(required = false) Long companyId,
-            @RequestParam(required = false) String targetType
+            @RequestParam(required = false) List<String> targetTypes
     ) {
-        byte[] excelBytes = auditLogExportService.exportForSuperAdmin(companyId, targetType);
+        byte[] excelBytes = auditLogExportService.exportForSuperAdmin(companyId, targetTypes);
 
         String filename = (companyId != null)
                 ? "audit-log-company-" + companyId + ".xlsx"

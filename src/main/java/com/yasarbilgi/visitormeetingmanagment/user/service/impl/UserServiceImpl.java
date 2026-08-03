@@ -285,7 +285,7 @@ public class UserServiceImpl implements UserService {
                 "ROLE_ASSIGNED",
                 "USER",
                 userId,
-                "Role '" + role.getName() + "' assigned to user " + userId
+                "Role '" + role.getName() + "' assigned to user '" + user.getFullName() + "'"
         );
 
         return userMapper.toResponseDto(user);
@@ -308,7 +308,7 @@ public class UserServiceImpl implements UserService {
                 "ROLE_REVOKED",
                 "USER",
                 userId,
-                "Role '" + role.getName() + "' revoked from user " + userId
+                "Role '" + role.getName() + "' revoked from user '" + user.getFullName() + "'"
         );
 
         return userMapper.toResponseDto(user);
@@ -392,7 +392,7 @@ public class UserServiceImpl implements UserService {
                 "OWNERSHIP_TRANSFERRED",
                 "USER",
                 newOwnerId,
-                "Ownership transferred from user " + currentOwnerId + " to user " + newOwnerId
+                "Ownership transferred from user '" + currentOwner.getFullName() + "' to user '" + newOwner.getFullName() + "'"
         );
 
         log.info("Ownership transferred successfully");
@@ -422,7 +422,7 @@ public class UserServiceImpl implements UserService {
                 "OWNERSHIP_FORCE_TRANSFERRED",
                 "USER",
                 newOwnerId,
-                "SuperAdmin force-transferred ownership to user " + newOwnerId
+                "SuperAdmin force-transferred ownership to user '" + newOwner.getFullName() + "'"
         );
 
         log.warn("User {} force-promoted to owner in company {}", newOwnerId, companyId);
