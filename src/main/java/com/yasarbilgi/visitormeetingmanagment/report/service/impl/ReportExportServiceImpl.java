@@ -4,6 +4,7 @@ import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
 import com.yasarbilgi.visitormeetingmanagment.report.dto.response.CancellationReportDto;
 import com.yasarbilgi.visitormeetingmanagment.report.dto.response.RoomUsageReportDto;
+import com.yasarbilgi.visitormeetingmanagment.report.dto.response.UserReservationStatsDto;
 import com.yasarbilgi.visitormeetingmanagment.report.service.ReportExportService;
 import com.yasarbilgi.visitormeetingmanagment.report.service.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,10 @@ public class ReportExportServiceImpl implements ReportExportService {
             "Kullanıcı ID", "Kullanıcı Adı", "İptal Sayısı"
     };
 
+    private static final String[] USER_RESERVATION_STATS_HEADERS = {
+            "Kullanıcı ID", "Kullanıcı Adı", "Toplam", "Başarılı", "Başarısız"
+    };
+
     private final ReportService reportService;
 
     @Override
@@ -64,6 +69,20 @@ public class ReportExportServiceImpl implements ReportExportService {
         log.info("SuperAdmin exporting cancellation report. companyId: {}", companyId);
         CancellationReportDto report = reportService.getCancellationReportForSuperAdmin(companyId, from, to);
         return buildCancellationExcel(report);
+    }
+
+    @Override
+    public byte[] exportUserReservationStatsForCompany(Long companyId, LocalDate from, LocalDate to) {
+        log.info("Exporting user reservation stats for company: {}", companyId);
+        List<UserReservationStatsDto> stats = reportService.getUserReservationStatsForCompany(companyId, from, to);
+        return buildUserReservationStatsExcel(stats);
+    }
+
+    @Override
+    public byte[] exportUserReservationStatsForSuperAdmin(Long companyId, LocalDate from, LocalDate to) {
+        log.info("SuperAdmin exporting user reservation stats. companyId: {}", companyId);
+        List<UserReservationStatsDto> stats = reportService.getUserReservationStatsForSuperAdmin(companyId, from, to);
+        return buildUserReservationStatsExcel(stats);
     }
 
     private byte[] buildRoomUsageExcel(List<RoomUsageReportDto> rows) {
@@ -123,6 +142,33 @@ public class ReportExportServiceImpl implements ReportExportService {
             return out.toByteArray();
         } catch (IOException e) {
             log.error("Failed to generate cancellation Excel export", e);
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private byte[] buildUserReservationStatsExcel(List<UserReservationStatsDto> rows) {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Kullanici Rezervasyon Istatistikleri");
+
+            CellStyle headerStyle = createHeaderStyle(workbook);
+            writeHeader(sheet, headerStyle, USER_RESERVATION_STATS_HEADERS, 0);
+
+            int rowIndex = 1;
+            for (UserReservationStatsDto row : rows) {
+                Row excelRow = sheet.createRow(rowIndex++);
+                excelRow.createCell(0).setCellValue(row.userId());
+                excelRow.createCell(1).setCellValue(row.userName());
+                excelRow.createCell(2).setCellValue(row.totalCount());
+                excelRow.createCell(3).setCellValue(row.successfulCount());
+                excelRow.createCell(4).setCellValue(row.unsuccessfulCount());
+            }
+
+            autoSizeColumns(sheet, USER_RESERVATION_STATS_HEADERS.length);
+
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            log.error("Failed to generate user reservation stats Excel export", e);
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
     }
