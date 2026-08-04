@@ -2,11 +2,13 @@ package com.yasarbilgi.visitormeetingmanagment.report.service.impl;
 
 import com.yasarbilgi.visitormeetingmanagment.report.dto.response.CancellationReportDto;
 import com.yasarbilgi.visitormeetingmanagment.report.dto.response.RoomUsageReportDto;
+import com.yasarbilgi.visitormeetingmanagment.report.dto.response.UserReservationStatsDto;
 import com.yasarbilgi.visitormeetingmanagment.report.service.ReportService;
 import com.yasarbilgi.visitormeetingmanagment.reservation.enums.ReservationStatus;
 import com.yasarbilgi.visitormeetingmanagment.reservation.repository.ReservationRepository;
 import com.yasarbilgi.visitormeetingmanagment.reservation.repository.projection.CancellationByUserProjection;
 import com.yasarbilgi.visitormeetingmanagment.reservation.repository.projection.RoomUsageProjection;
+import com.yasarbilgi.visitormeetingmanagment.reservation.repository.projection.UserReservationStatsProjection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -60,6 +62,36 @@ public class ReportServiceImpl implements ReportService {
     public CancellationReportDto getCancellationReportForSuperAdmin(Long companyId, LocalDate from, LocalDate to) {
         log.info("SuperAdmin generating cancellation report. companyId: {}", companyId);
         return buildCancellationReport(companyId, from, to);
+    }
+
+    @Override
+    public List<UserReservationStatsDto> getUserReservationStatsForCompany(Long companyId, LocalDate from, LocalDate to) {
+        log.info("Generating user reservation stats for company: {}", companyId);
+        return buildUserReservationStats(companyId, from, to);
+    }
+
+    @Override
+    public List<UserReservationStatsDto> getUserReservationStatsForSuperAdmin(Long companyId, LocalDate from, LocalDate to) {
+        log.info("SuperAdmin generating user reservation stats. companyId: {}", companyId);
+        return buildUserReservationStats(companyId, from, to);
+    }
+
+    private List<UserReservationStatsDto> buildUserReservationStats(Long companyId, LocalDate from, LocalDate to) {
+        LocalDateTime rangeStart = toStartOfDay(from);
+        LocalDateTime rangeEnd = toExclusiveEndOfDay(to);
+
+        List<UserReservationStatsProjection> rows =
+                reservationRepository.findReservationStatsByUser(companyId, rangeStart, rangeEnd);
+
+        return rows.stream()
+                .map(row -> UserReservationStatsDto.builder()
+                        .userId(row.getUserId())
+                        .userName(row.getFirstName() + " " + row.getLastName())
+                        .totalCount(row.getTotalCount())
+                        .successfulCount(row.getSuccessfulCount())
+                        .unsuccessfulCount(row.getUnsuccessfulCount())
+                        .build())
+                .toList();
     }
 
     private List<RoomUsageReportDto> buildRoomUsageReport(Long companyId, LocalDate from, LocalDate to) {

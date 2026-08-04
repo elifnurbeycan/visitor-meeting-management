@@ -3,6 +3,7 @@ package com.yasarbilgi.visitormeetingmanagment.report.controller;
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
 import com.yasarbilgi.visitormeetingmanagment.report.dto.response.CancellationReportDto;
 import com.yasarbilgi.visitormeetingmanagment.report.dto.response.RoomUsageReportDto;
+import com.yasarbilgi.visitormeetingmanagment.report.dto.response.UserReservationStatsDto;
 import com.yasarbilgi.visitormeetingmanagment.report.service.ReportExportService;
 import com.yasarbilgi.visitormeetingmanagment.report.service.ReportService;
 import com.yasarbilgi.visitormeetingmanagment.security.model.AuthenticatedUser;
@@ -89,6 +90,36 @@ public class ReportController {
                 reportExportService.exportCancellationsForCompany(currentUser.companyId(), from, to);
 
         String filename = "cancellations-" + currentUser.companyId() + ".xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelBytes);
+    }
+
+    @PreAuthorize("hasAuthority('REPORT_VIEW_RESERVATION_STATS')")
+    @GetMapping("/user-reservation-stats")
+    public ResponseEntity<ApiResponse<List<UserReservationStatsDto>>> getUserReservationStats(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        List<UserReservationStatsDto> stats =
+                reportService.getUserReservationStatsForCompany(currentUser.companyId(), from, to);
+        return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    @PreAuthorize("hasAuthority('REPORT_EXPORT_EXCEL')")
+    @GetMapping("/user-reservation-stats/export")
+    public ResponseEntity<byte[]> exportUserReservationStats(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        byte[] excelBytes =
+                reportExportService.exportUserReservationStatsForCompany(currentUser.companyId(), from, to);
+
+        String filename = "user-reservation-stats-" + currentUser.companyId() + ".xlsx";
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")

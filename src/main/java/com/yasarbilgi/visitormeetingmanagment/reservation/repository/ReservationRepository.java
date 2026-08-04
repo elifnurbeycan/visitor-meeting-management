@@ -4,6 +4,7 @@ import com.yasarbilgi.visitormeetingmanagment.reservation.entity.Reservation;
 import com.yasarbilgi.visitormeetingmanagment.reservation.enums.ReservationStatus;
 import com.yasarbilgi.visitormeetingmanagment.reservation.repository.projection.CancellationByUserProjection;
 import com.yasarbilgi.visitormeetingmanagment.reservation.repository.projection.RoomUsageProjection;
+import com.yasarbilgi.visitormeetingmanagment.reservation.repository.projection.UserReservationStatsProjection;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -125,6 +126,37 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
         ORDER BY COUNT(r) DESC
         """)
     List<CancellationByUserProjection> findCancellationsByUser(
+            @Param("companyId") Long companyId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+
+    /**
+     * Kullanıcı bazında TÜM rezervasyonların (durum fark etmeksizin) sayısını
+     * hesaplar, ayrıca bunların kaçının "başarılı" (ACTIVE/COMPLETED) ve
+     * kaçının "başarısız" (REJECTED/CANCELLED/EXPIRED) olduğunu tek sorguda
+     * kırılım olarak döner. totalCount, successfulCount+unsuccessfulCount'tan
+     * BÜYÜK olabilir — aradaki fark, hâlâ onay bekleyen (PENDING_APPROVAL)
+     * rezervasyonlardır. En çok rezervasyon yapan kullanıcı en üstte olacak
+     * şekilde sıralanır. companyId null ise tüm şirketler dahil edilir
+     * (SuperAdmin için).
+     */
+    @Query("""
+        SELECT r.organizer.id AS userId,
+               r.organizer.firstName AS firstName,
+               r.organizer.lastName AS lastName,
+               COUNT(r) AS totalCount,
+               SUM(CASE WHEN r.status IN ('ACTIVE', 'COMPLETED') THEN 1 ELSE 0 END) AS successfulCount,
+               SUM(CASE WHEN r.status IN ('REJECTED', 'CANCELLED', 'EXPIRED') THEN 1 ELSE 0 END) AS unsuccessfulCount
+        FROM Reservation r
+        WHERE (:companyId IS NULL OR r.company.id = :companyId)
+        AND r.startTime >= :from
+        AND r.startTime < :to
+        GROUP BY r.organizer.id, r.organizer.firstName, r.organizer.lastName
+        ORDER BY COUNT(r) DESC
+        """)
+    List<UserReservationStatsProjection> findReservationStatsByUser(
             @Param("companyId") Long companyId,
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to

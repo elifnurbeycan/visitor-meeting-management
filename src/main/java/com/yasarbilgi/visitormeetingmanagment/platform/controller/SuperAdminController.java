@@ -10,6 +10,7 @@ import com.yasarbilgi.visitormeetingmanagment.platform.dto.response.SuperAdminRe
 import com.yasarbilgi.visitormeetingmanagment.platform.service.SuperAdminService;
 import com.yasarbilgi.visitormeetingmanagment.report.dto.response.CancellationReportDto;
 import com.yasarbilgi.visitormeetingmanagment.report.dto.response.RoomUsageReportDto;
+import com.yasarbilgi.visitormeetingmanagment.report.dto.response.UserReservationStatsDto;
 import com.yasarbilgi.visitormeetingmanagment.report.service.ReportExportService;
 import com.yasarbilgi.visitormeetingmanagment.report.service.ReportService;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
@@ -250,6 +251,35 @@ public class SuperAdminController {
         String filename = (companyId != null)
                 ? "cancellations-company-" + companyId + ".xlsx"
                 : "cancellations-all-companies.xlsx";
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excelBytes);
+    }
+
+    @GetMapping("/reports/user-reservation-stats")
+    public ResponseEntity<ApiResponse<List<UserReservationStatsDto>>> getUserReservationStats(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        List<UserReservationStatsDto> stats =
+                reportService.getUserReservationStatsForSuperAdmin(companyId, from, to);
+        return ResponseEntity.ok(ApiResponse.success(stats));
+    }
+
+    @GetMapping("/reports/user-reservation-stats/export")
+    public ResponseEntity<byte[]> exportUserReservationStats(
+            @RequestParam(required = false) Long companyId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+    ) {
+        byte[] excelBytes = reportExportService.exportUserReservationStatsForSuperAdmin(companyId, from, to);
+
+        String filename = (companyId != null)
+                ? "user-reservation-stats-company-" + companyId + ".xlsx"
+                : "user-reservation-stats-all-companies.xlsx";
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
