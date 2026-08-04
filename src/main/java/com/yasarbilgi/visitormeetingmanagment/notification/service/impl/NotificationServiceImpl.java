@@ -9,6 +9,8 @@ import com.yasarbilgi.visitormeetingmanagment.notification.repository.Notificati
 import com.yasarbilgi.visitormeetingmanagment.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,5 +38,26 @@ public class NotificationServiceImpl implements NotificationService {
 
         notificationRepository.save(notification);
         log.debug("Notification created for user {}: {}", recipientUserId, title);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Notification> listForUser(Long recipientUserId, Pageable pageable) {
+        return notificationRepository.findAllByRecipientUserIdOrderByCreatedAtDesc(recipientUserId, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countUnread(Long recipientUserId) {
+        return notificationRepository.countByRecipientUserIdAndReadFalse(recipientUserId);
+    }
+
+    @Override
+    @Transactional
+    public void markAsRead(Long notificationId, Long recipientUserId) {
+        Notification notification = notificationRepository.findByIdAndRecipientUserId(notificationId, recipientUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
+
+        notification.markAsRead();
     }
 }
