@@ -23,8 +23,8 @@ public interface FeatureRepository extends JpaRepository<Feature, Long> {
             SELECT f FROM Feature f
             WHERE f.company.id = :companyId
             AND f.active = :active
-            AND (:keyword IS NULL OR LOWER(f.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                 OR LOWER(f.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND (:keyword IS NULL OR LOWER(f.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                 OR LOWER(f.description) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
             """)
     Page<Feature> searchByCompanyIdAndKeyword(
             @Param("companyId") Long companyId,

@@ -23,7 +23,7 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
             SELECT d FROM Department d
             WHERE d.company.id = :companyId
             AND d.active = :active
-            AND (:keyword IS NULL OR LOWER(d.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND (:keyword IS NULL OR LOWER(d.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
             """)
     Page<Department> searchByKeyword(
             @Param("companyId") Long companyId,

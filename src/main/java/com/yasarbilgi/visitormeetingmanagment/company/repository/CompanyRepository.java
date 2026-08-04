@@ -28,8 +28,8 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     @Query("""
             SELECT c FROM Company c
             WHERE c.active = :active
-            AND (:keyword IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                 OR LOWER(c.slug) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND (:keyword IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                 OR LOWER(c.slug) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
             """)
     Page<Company> searchByKeyword(
             @Param("active") boolean active,

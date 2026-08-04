@@ -74,11 +74,11 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
               AND r.active = :active
               AND (
                     :keyword IS NULL
-                    OR LOWER(r.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                    OR LOWER(r.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
                     OR LOWER(COALESCE(r.location, ''))
-                       LIKE LOWER(CONCAT('%', :keyword, '%'))
+                       LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
                     OR LOWER(COALESCE(r.description, ''))
-                       LIKE LOWER(CONCAT('%', :keyword, '%'))
+                       LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
               )
             """)
     Page<Room> searchByKeyword(
