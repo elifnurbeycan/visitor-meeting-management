@@ -32,6 +32,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DateUtil;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+import java.util.ArrayList;
 
 @Slf4j
 @Service
@@ -560,6 +570,149 @@ public class UserServiceImpl implements UserService {
             log.warn("Admin {} attempted to modify another admin {} in company {}",
                     actorUserId, targetUserId, companyId);
             throw new BusinessException(ErrorCode.ADMIN_CANNOT_MODIFY_ANOTHER_ADMIN);
+        }
+    }
+
+    @Override
+    @Transactional
+    public List<UserResponseDto> importUsers(Long companyId, MultipartFile file) {
+        log.info("Excel dosyasından toplu kullanıcı içe aktarılıyor. Şirket ID: {}", companyId);
+
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Yüklenen Excel dosyası boş olamaz.");
+        }
+
+        String filename = file.getOriginalFilename();
+        if (filename == null || (!filename.endsWith(".xlsx") && !filename.endsWith(".xls"))) {
+            throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Geçersiz dosya formatı. Sadece Excel (.xlsx, .xls) dosyaları yüklenebilir.");
+        }
+
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.COMPANY_NOT_FOUND));
+
+        // Şirketin default "Çalışan" rolünü bul
+        Role defaultRole = roleRepository.findByCompanyIdAndNameIgnoreCase(companyId, "Çalışan")
+                .orElseThrow(() -> new BusinessException(ErrorCode.ROLE_NOT_FOUND));
+
+        List<User> usersToSave = new ArrayList<>();
+
+        try (java.io.InputStream is = file.getInputStream();
+             Workbook workbook = WorkbookFactory.create(is)) {
+
+            Sheet sheet = workbook.getSheetAt(0);
+            int rowCount = sheet.getPhysicalNumberOfRows();
+            if (rowCount <= 1) {
+                throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Excel dosyasında veri bulunamadı.");
+            }
+
+            // Başlık satırını atlayıp 1. satırdan (ikinci satır) okumaya başlıyoruz
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) {
+                    continue;
+                }
+
+                Cell usernameCell = row.getCell(0);
+                Cell emailCell = row.getCell(1);
+
+                // Satır tamamen boşsa atla
+                if (isCellEmpty(usernameCell) && isCellEmpty(emailCell)) {
+                    continue;
+                }
+
+                String username = getCellValueAsString(usernameCell);
+                String email = getCellValueAsString(emailCell);
+
+                int rowNum = i + 1; // Hata mesajları için 1 tabanlı satır numarası
+
+                if (username == null || username.isBlank()) {
+                    throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, rowNum + ". satırda kullanıcı adı alanı zorunludur.");
+                }
+                if (email == null || email.isBlank()) {
+                    throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, rowNum + ". satırda e-posta alanı zorunludur.");
+                }
+
+                username = username.trim();
+                email = email.trim().toLowerCase();
+
+                // E-posta formatı kontrolü
+                if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                    throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, rowNum + ". satırdaki e-posta formatı geçersiz: " + email);
+                }
+
+                // Benzersizlik (Unique) doğrulamaları
+                validateEmailNotTaken(companyId, email);
+                validateUsernameNotTaken(username);
+
+                // Varsayılan şifre olarak kullanıcının kendi kullanıcı adı şifreleniyor
+                String defaultPasswordHash = passwordEncoder.encode(username);
+
+                User user = User.builder()
+                        .company(company)
+                        .firstName("-") // Geçici placeholder
+                        .lastName("-")  // Geçici placeholder
+                        .email(email)
+                        .username(username)
+                        .passwordHash(defaultPasswordHash)
+                        .mustChangePassword(true) // İlk girişte şifre değiştirme zorunlu
+                        .build();
+
+                user.assignRole(defaultRole);
+                usersToSave.add(user);
+            }
+
+        } catch (java.io.IOException e) {
+            log.error("Excel okuma sırasında I/O hatası oluştu: ", e);
+            throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Excel dosyası okunamadı: " + e.getMessage());
+        }
+
+        if (usersToSave.isEmpty()) {
+            throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Excel dosyasında eklenecek geçerli veri bulunamadı.");
+        }
+
+        List<User> savedUsers = userRepository.saveAll(usersToSave);
+
+        // Denetim Günlüğü (Audit Log) Kaydı
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "USER_BULK_IMPORTED",
+                "USER",
+                null,
+                savedUsers.size() + " adet kullanıcı Excel üzerinden toplu olarak içe aktarıldı."
+        );
+
+        return savedUsers.stream()
+                .map(userMapper::toResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    private boolean isCellEmpty(Cell cell) {
+        return cell == null || cell.getCellType() == CellType.BLANK ||
+               (cell.getCellType() == CellType.STRING && cell.getStringCellValue().trim().isEmpty());
+    }
+
+    private String getCellValueAsString(Cell cell) {
+        if (cell == null) {
+            return null;
+        }
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    return cell.getDateCellValue().toString();
+                }
+                double val = cell.getNumericCellValue();
+                if (val == (long) val) {
+                    return String.format("%d", (long) val);
+                } else {
+                    return String.format("%s", val);
+                }
+            case BOOLEAN:
+                return Boolean.toString(cell.getBooleanCellValue());
+            default:
+                return null;
         }
     }
 }

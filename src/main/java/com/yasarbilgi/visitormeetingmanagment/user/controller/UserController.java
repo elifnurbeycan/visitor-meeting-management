@@ -1,6 +1,8 @@
 package com.yasarbilgi.visitormeetingmanagment.user.controller;
 
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserDirectoryResponseDto;
@@ -246,5 +248,15 @@ public class UserController {
     ) {
         userService.forcePasswordReset(companyId, userId);
         return ResponseEntity.ok(ApiResponse.success("User will be required to change password on next login"));
+    }
+
+    @PreAuthorize("hasAuthority('USER_CREATE')")
+    @PostMapping(value = "/import", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<List<UserResponseDto>>> importUsers(
+            @PathVariable Long companyId,
+            @RequestParam("file") MultipartFile file
+    ) {
+        List<UserResponseDto> created = userService.importUsers(companyId, file);
+        return ResponseEntity.ok(ApiResponse.success("Users imported successfully from Excel", created));
     }
 }

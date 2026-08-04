@@ -37,6 +37,15 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.HashSet;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -1376,6 +1385,94 @@ class UserServiceImplTest {
                 .departmentId(DEPARTMENT_ID)
                 .roleIds(Set.of(ROLE_ID))
                 .build();
+    }
+
+    @Test
+    void importUsers_shouldSucceed() throws IOException {
+        MockMultipartFile file = createMockExcelFile(List.of(
+                new String[]{"Kullanıcı Adı", "E-posta"},
+                new String[]{"john.doe", "john@example.com"}
+        ));
+
+        when(companyRepository.findById(COMPANY_ID)).thenReturn(Optional.of(company));
+
+        Role defaultRole = mock(Role.class);
+        when(roleRepository.findByCompanyIdAndNameIgnoreCase(COMPANY_ID, "Çalışan"))
+                .thenReturn(Optional.of(defaultRole));
+
+        when(passwordEncoder.encode("john.doe")).thenReturn("hashedPassword");
+
+        when(userRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userMapper.toResponseDto(any())).thenReturn(mock(UserResponseDto.class));
+        when(currentUserProvider.getCurrentUser()).thenReturn(Optional.empty());
+
+        List<UserResponseDto> result = userService.importUsers(COMPANY_ID, file);
+
+        assertThat(result).hasSize(1);
+        verify(userRepository, times(1)).saveAll(any());
+        verify(auditLogService, times(1)).log(eq(COMPANY_ID), any(), eq("USER_BULK_IMPORTED"), eq("USER"), any(), anyString());
+    }
+
+    @Test
+    void importUsers_shouldThrowException_whenFileIsEmpty() {
+        MockMultipartFile file = new MockMultipartFile("file", "empty.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", new byte[0]);
+
+        assertThatThrownBy(() -> userService.importUsers(COMPANY_ID, file))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BUSINESS_RULE_VIOLATION);
+    }
+
+    @Test
+    void importUsers_shouldThrowException_whenUsernameMissing() throws IOException {
+        MockMultipartFile file = createMockExcelFile(List.of(
+                new String[]{"Kullanıcı Adı", "E-posta"},
+                new String[]{"", "john@example.com"}
+        ));
+
+        when(companyRepository.findById(COMPANY_ID)).thenReturn(Optional.of(company));
+        when(roleRepository.findByCompanyIdAndNameIgnoreCase(COMPANY_ID, "Çalışan"))
+                .thenReturn(Optional.of(mock(Role.class)));
+
+        assertThatThrownBy(() -> userService.importUsers(COMPANY_ID, file))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BUSINESS_RULE_VIOLATION)
+                .extracting("args")
+                .satisfies(args -> assertThat((Object[]) args).contains("2. satırda kullanıcı adı alanı zorunludur."));
+    }
+
+    @Test
+    void importUsers_shouldThrowException_whenEmailInvalid() throws IOException {
+        MockMultipartFile file = createMockExcelFile(List.of(
+                new String[]{"Kullanıcı Adı", "E-posta"},
+                new String[]{"john.doe", "invalid-email"}
+        ));
+
+        when(companyRepository.findById(COMPANY_ID)).thenReturn(Optional.of(company));
+        when(roleRepository.findByCompanyIdAndNameIgnoreCase(COMPANY_ID, "Çalışan"))
+                .thenReturn(Optional.of(mock(Role.class)));
+
+        assertThatThrownBy(() -> userService.importUsers(COMPANY_ID, file))
+                .isInstanceOf(BusinessException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorCode.BUSINESS_RULE_VIOLATION)
+                .extracting("args")
+                .satisfies(args -> assertThat((Object[]) args).anyMatch(arg -> arg.toString().contains("2. satırdaki e-posta formatı geçersiz")));
+    }
+
+    private MockMultipartFile createMockExcelFile(List<String[]> rows) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet();
+            for (int i = 0; i < rows.size(); i++) {
+                Row row = sheet.createRow(i);
+                String[] rowData = rows.get(i);
+                for (int j = 0; j < rowData.length; j++) {
+                    row.createCell(j).setCellValue(rowData[j]);
+                }
+            }
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            workbook.write(bos);
+            byte[] content = bos.toByteArray();
+            return new MockMultipartFile("file", "users.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", content);
+        }
     }
 
     private Company createOtherCompany() {
