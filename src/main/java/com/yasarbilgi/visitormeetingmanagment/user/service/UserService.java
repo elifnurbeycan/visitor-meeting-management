@@ -1,6 +1,8 @@
 package com.yasarbilgi.visitormeetingmanagment.user.service;
 
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserDirectoryResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import org.springframework.data.domain.Page;
@@ -67,5 +69,7 @@ public interface UserService {
     long countActiveUsers(Long companyId);
 
     void forcePasswordReset(Long companyId, Long userId);
+
+    List<UserResponseDto> importUsers(Long companyId, MultipartFile file);
 
 }

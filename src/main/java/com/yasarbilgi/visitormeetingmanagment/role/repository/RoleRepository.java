@@ -18,6 +18,11 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
     Optional<Role> findByIdAndCompanyId(Long id, Long companyId);
 
     /**
+     * Şirkete ait belirli bir rolü ismi üzerinden (büyük/küçük harf duyarsız) getirir.
+     */
+    Optional<Role> findByCompanyIdAndNameIgnoreCase(Long companyId, String name);
+
+    /**
      * Belirli bir şirkette aynı isimde rol bulunup bulunmadığını kontrol eder.
      */
     boolean existsByCompanyIdAndNameIgnoreCase(Long companyId, String name);
