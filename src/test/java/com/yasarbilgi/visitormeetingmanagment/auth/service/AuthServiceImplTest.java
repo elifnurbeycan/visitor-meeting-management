@@ -24,6 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
+
 
 import java.time.Instant;
 import java.util.Optional;
@@ -64,6 +66,10 @@ class AuthServiceImplTest {
 
     @Mock
     private PermissionCacheService permissionCacheService;
+
+    @Mock
+    private AuditLogService auditLogService;
+
 
     @InjectMocks
     private AuthServiceImpl authService;
