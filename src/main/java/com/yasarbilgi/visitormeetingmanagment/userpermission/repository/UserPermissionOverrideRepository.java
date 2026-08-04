@@ -42,11 +42,11 @@ public interface UserPermissionOverrideRepository extends JpaRepository<UserPerm
         SELECT upo FROM UserPermissionOverride upo
         WHERE upo.company.id = :companyId
         AND upo.active = :active
-        AND (:keyword IS NULL 
-             OR LOWER(upo.user.firstName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-             OR LOWER(upo.user.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-             OR LOWER(upo.user.email) LIKE LOWER(CONCAT('%', :keyword, '%'))
-             OR LOWER(upo.permission.name) LIKE LOWER(CONCAT('%', :keyword, '%')))
+        AND (:keyword IS NULL
+             OR LOWER(upo.user.firstName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+             OR LOWER(upo.user.lastName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+             OR LOWER(upo.user.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+             OR LOWER(upo.permission.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
         """)
     Page<UserPermissionOverride> searchByKeyword(
             @Param("companyId") Long companyId,

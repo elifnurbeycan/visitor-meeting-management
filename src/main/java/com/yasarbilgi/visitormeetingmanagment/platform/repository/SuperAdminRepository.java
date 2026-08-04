@@ -22,8 +22,8 @@ public interface SuperAdminRepository extends JpaRepository<SuperAdmin, Long> {
     @Query("""
             SELECT s FROM SuperAdmin s
             WHERE (:keyword IS NULL
-                   OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                   OR LOWER(s.email) LIKE LOWER(CONCAT('%', :keyword, '%')))
+                   OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                   OR LOWER(s.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
             """)
     Page<SuperAdmin> searchByKeyword(
             @Param("keyword") String keyword,

@@ -26,8 +26,8 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
     @Query("""
             SELECT p FROM Permission p
             WHERE p.active = :active
-            AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                 OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                 OR LOWER(p.description) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
             """)
     Page<Permission> searchByKeyword(
             @Param("active") boolean active,
