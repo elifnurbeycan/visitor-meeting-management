@@ -11,4 +11,8 @@ public interface ReportExportService {
     byte[] exportCancellationsForCompany(Long companyId, LocalDate from, LocalDate to);
 
     byte[] exportCancellationsForSuperAdmin(Long companyId, LocalDate from, LocalDate to);
+
+    byte[] exportUserReservationStatsForCompany(Long companyId, LocalDate from, LocalDate to);
+
+    byte[] exportUserReservationStatsForSuperAdmin(Long companyId, LocalDate from, LocalDate to);
 }

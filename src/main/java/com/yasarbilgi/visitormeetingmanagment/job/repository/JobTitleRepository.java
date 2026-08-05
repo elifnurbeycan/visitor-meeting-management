@@ -50,8 +50,8 @@ public interface JobTitleRepository extends JpaRepository<JobTitle, Long> {
             SELECT j FROM JobTitle j
             WHERE j.company.id = :companyId
             AND j.active = :active
-            AND (:keyword IS NULL OR LOWER(j.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                 OR LOWER(j.description) LIKE LOWER(CONCAT('%', :keyword, '%')))
+            AND (:keyword IS NULL OR LOWER(j.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
+                 OR LOWER(j.description) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
             """)
     Page<JobTitle> searchByKeyword(
             @Param("companyId") Long companyId,

@@ -207,6 +207,13 @@ public enum ErrorCode {
             "user.usernameAlreadyExists"
     ),
 
+    // Notification
+    NOTIFICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "notification.notFound"
+    ),
+
+    
     // Feature
     FEATURE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
