@@ -162,6 +162,16 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success("User activated successfully"));
     }
 
+    @PreAuthorize("hasAuthority('USER_DELETE')")
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable Long companyId,
+            @PathVariable Long userId
+    ) {
+        userService.delete(companyId, userId);
+        return ResponseEntity.ok(ApiResponse.success("User deleted successfully"));
+    }
+
     @PreAuthorize("hasAuthority('USER_ASSIGN_ROLE')")
     @PatchMapping("/{userId}/roles/{roleId}")
     public ResponseEntity<ApiResponse<UserResponseDto>> assignRole(

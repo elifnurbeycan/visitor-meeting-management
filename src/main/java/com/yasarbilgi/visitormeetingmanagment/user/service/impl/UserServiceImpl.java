@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -273,6 +274,42 @@ public class UserServiceImpl implements UserService {
                 "User '" + user.getFullName() + "' activated"
         );
 
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long companyId, Long userId) {
+        log.info("Deleting user with id: {} for company: {}", userId, companyId);
+        AuthenticatedUser currentUser = currentUserProvider.getCurrentUser()
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
+        if (currentUser.userId().equals(userId)) {
+            throw new BusinessException(ErrorCode.USER_CANNOT_DELETE_SELF);
+        }
+
+        enforceAdminHierarchy(companyId, userId);
+        User user = findUserOrThrow(companyId, userId);
+        if (user.isOwner()) {
+            throw new BusinessException(ErrorCode.USER_OWNER_CANNOT_BE_DELETED);
+        }
+
+        String fullName = user.getFullName();
+        try {
+            userRepository.delete(user);
+            userRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            log.warn("User {} cannot be deleted because related records exist", userId);
+            throw new BusinessException(ErrorCode.USER_HAS_RELATED_RECORDS);
+        }
+
+        permissionCacheService.invalidate(userId);
+        auditLogService.log(
+                companyId,
+                currentUser.userId(),
+                "USER_DELETED",
+                "USER",
+                userId,
+                "User '" + fullName + "' permanently deleted"
+        );
     }
 
     @Override

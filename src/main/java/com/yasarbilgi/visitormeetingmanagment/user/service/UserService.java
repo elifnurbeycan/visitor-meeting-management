@@ -46,6 +46,8 @@ public interface UserService {
 
     void activate(Long companyId, Long userId);
 
+    void delete(Long companyId, Long userId);
+
     // ----- Rol yönetimi -----
 
     UserResponseDto assignRole(Long companyId, Long userId, Long roleId);
