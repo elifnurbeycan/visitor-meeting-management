@@ -36,10 +36,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * ReservationService arayüzünün iş mantığı implementasyon sınıfı.
- * Odaların çakışma durumları, kapasite sınırları ve kiracı (Tenant) doğrulamaları burada yapılır.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -59,10 +55,6 @@ public class ReservationServiceImpl implements ReservationService {
     private static final List<ReservationStatus> ACTIVE_CONFLICT_STATUSES =
             List.of(ReservationStatus.PENDING_APPROVAL, ReservationStatus.ACTIVE);
 
-    /**
-     * Yeni bir toplantı odası rezervasyonu oluşturur.
-     * Tarih aralığı, oda kapasitesi, kiracı uyumluluğu ve oda doluluk durumu doğrulanır.
-     */
     @Override
     @Transactional
     public ReservationResponseDto create(Long companyId, Long organizerId, ReservationRequestDto dto) {
@@ -121,14 +113,21 @@ public class ReservationServiceImpl implements ReservationService {
                 saved.getId(),
                 "Reservation '" + saved.getTitle() + "' requested for room '" + room.getName() + "'"
         );
+        reservationNotificationService.notifyOrganizerOnly(
+                saved,
+                "Rezervasyon Talebiniz Oluşturuldu",
+                "'" + saved.getTitle() + "' başlıklı rezervasyon talebiniz oluşturuldu ve onay bekliyor."
+        );
+
+        reservationNotificationService.notifyOrganizerOnly(
+                saved,
+                "Rezervasyon Talebiniz Oluşturuldu",
+                "'" + saved.getTitle() + "' başlıklı rezervasyon talebiniz oluşturuldu ve onay bekliyor."
+        );
 
         return reservationMapper.toResponseDto(saved);
     }
 
-    /**
-     * Rezervasyon detaylarını günceller.
-     * Sadece toplantıyı düzenleyen kişi güncelleme yapabilir.
-     */
     @Override
     @Transactional
     public ReservationResponseDto update(Long companyId, Long organizerId, Long id, UpdateReservationRequestDto dto) {
@@ -151,9 +150,7 @@ public class ReservationServiceImpl implements ReservationService {
             throw new BusinessException(ErrorCode.RESERVATION_CONFLICT);
         }
 
-        reservation.updateDetails(
-                dto.title(), dto.description(), dto.startTime(), dto.endTime(), newRoom
-        );
+        reservation.updateDetails(dto.title(), dto.description(), dto.startTime(), dto.endTime(), newRoom);
 
         auditLogService.log(
                 companyId, organizerId, "RESERVATION_UPDATED", "RESERVATION", id,
@@ -167,10 +164,6 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationMapper.toResponseDto(reservation);
     }
 
-    /**
-     * Rezervasyonu onaylar.
-     * Çakışan diğer bekleyen (PENDING_APPROVAL) istekleri otomatik olarak REDDEDER.
-     */
     @Override
     @Transactional
     public ReservationResponseDto approve(Long companyId, Long id) {
@@ -218,6 +211,7 @@ public class ReservationServiceImpl implements ReservationService {
         );
 
         log.info("Reservation approved successfully with id: {}", id);
+
         if (!autoRejected.isEmpty()) {
             log.info("Auto-rejected {} conflicting pending reservation(s) for room {}",
                     autoRejected.size(), target.getRoom().getId());
@@ -236,13 +230,11 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationMapper.toResponseDto(lockedTarget);
     }
 
-    /**
-     * Rezervasyon başvurusunu gerekçe belirterek reddeder.
-     */
     @Override
     @Transactional
     public ReservationResponseDto reject(Long companyId, Long id, String reason) {
         log.info("Rejecting reservation id: {}, reason: {}", id, reason);
+
         Reservation reservation = findReservationOrThrow(id, companyId);
         reservation.reject(reason);
 
@@ -267,13 +259,11 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationMapper.toResponseDto(reservation);
     }
 
-    /**
-     * Aktif bir rezervasyonu gerekçe belirterek iptal eder.
-     */
     @Override
     @Transactional
     public void cancel(Long companyId, Long userId, Long id, String reason) {
         log.info("Cancelling reservation id: {} by user: {}", id, userId);
+
         Reservation reservation = findReservationOrThrow(id, companyId);
 
         boolean isOrganizer = reservation.getOrganizer().getId().equals(userId);
@@ -333,6 +323,7 @@ public class ReservationServiceImpl implements ReservationService {
             Long companyId, LocalDateTime from, LocalDateTime to, Pageable pageable
     ) {
         log.debug("Fetching reservations for company: {} between {} and {}", companyId, from, to);
+
         return reservationRepository
                 .findAllByCompanyIdAndStartTimeLessThanAndEndTimeGreaterThan(companyId, to, from, pageable)
                 .map(reservationMapper::toResponseDto);
@@ -400,8 +391,6 @@ public class ReservationServiceImpl implements ReservationService {
         return reservationMapper.toResponseDto(reservation);
     }
 
-    // ----- Yardımcı Metotlar -----
-
     private Company findCompanyOrThrow(Long companyId) {
         return companyRepository.findById(companyId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COMPANY_NOT_FOUND));
@@ -415,18 +404,22 @@ public class ReservationServiceImpl implements ReservationService {
     private Room findRoomAndValidateTenant(Long roomId, Long companyId) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEETING_ROOM_NOT_FOUND));
+
         if (!room.getCompany().getId().equals(companyId)) {
             throw new BusinessException(ErrorCode.MEETING_ROOM_NOT_FOUND);
         }
+
         return room;
     }
 
     private User findUserAndValidateTenant(Long userId, Long companyId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
         if (!user.getCompany().getId().equals(companyId)) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
+
         return user;
     }
 
@@ -434,6 +427,7 @@ public class ReservationServiceImpl implements ReservationService {
         if (start.isAfter(end) || start.isEqual(end)) {
             throw new BusinessException(ErrorCode.INVALID_RESERVATION_TIME);
         }
+
         if (start.isBefore(LocalDateTime.now())) {
             throw new BusinessException(ErrorCode.RESERVATION_IN_PAST);
         }
@@ -443,6 +437,7 @@ public class ReservationServiceImpl implements ReservationService {
         if (participantIds == null || participantIds.isEmpty()) {
             return new HashSet<>();
         }
+
         return participantIds.stream()
                 .map(id -> findUserAndValidateTenant(id, companyId))
                 .collect(java.util.stream.Collectors.toSet());
