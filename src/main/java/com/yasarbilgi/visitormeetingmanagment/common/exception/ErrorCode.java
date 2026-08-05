@@ -177,6 +177,21 @@ public enum ErrorCode {
             "user.ownerCannotBeDeactivated"
     ),
 
+    USER_OWNER_CANNOT_BE_DELETED(
+            HttpStatus.FORBIDDEN,
+            "user.ownerCannotBeDeleted"
+    ),
+
+    USER_CANNOT_DELETE_SELF(
+            HttpStatus.FORBIDDEN,
+            "user.cannotDeleteSelf"
+    ),
+
+    USER_HAS_RELATED_RECORDS(
+            HttpStatus.CONFLICT,
+            "user.hasRelatedRecords"
+    ),
+
     USER_FIRST_NAME_REQUIRED(
             HttpStatus.BAD_REQUEST,
             "user.firstNameRequired"
