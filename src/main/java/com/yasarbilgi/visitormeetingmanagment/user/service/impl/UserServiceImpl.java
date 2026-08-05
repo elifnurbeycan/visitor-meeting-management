@@ -219,17 +219,20 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<UserResponseDto> search(Long companyId, boolean active, String keyword, Pageable pageable) {
         log.debug("Searching users with keyword='{}' for company: {}", keyword, companyId);
-        return userRepository.searchByKeyword(companyId, active, keyword, pageable)
+        String pattern = keyword != null ? "%" + keyword.toLowerCase() + "%" : null;
+        return userRepository.searchByKeyword(companyId, active, keyword, pattern, pageable)
                 .map(userMapper::toResponseDto);
     }
 
     @Override
     public Page<UserDirectoryResponseDto> searchDirectory(Long companyId, String keyword, Pageable pageable) {
-        return userRepository.searchByKeyword(companyId, true, keyword, pageable)
+        String pattern = keyword != null ? "%" + keyword.toLowerCase() + "%" : null;
+        return userRepository.searchByKeyword(companyId, true, keyword, pattern, pageable)
                 .map(user -> UserDirectoryResponseDto.builder()
                         .id(user.getId())
                         .fullName(user.getFullName())
                         .email(user.getEmail())
+                        .username(user.getUsername())
                         .build());
     }
 
