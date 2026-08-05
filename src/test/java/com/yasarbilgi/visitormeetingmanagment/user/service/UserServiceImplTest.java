@@ -858,6 +858,7 @@ class UserServiceImplTest {
                 COMPANY_ID,
                 true,
                 "Emir",
+                "%emir%",
                 pageable
         )).thenReturn(page);
 

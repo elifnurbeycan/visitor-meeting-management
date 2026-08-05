@@ -37,14 +37,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
             WHERE u.company.id = :companyId
             AND u.active = :active
             AND (:keyword IS NULL
-                 OR LOWER(u.firstName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-                 OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
-                 OR LOWER(u.email) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))
+                 OR LOWER(u.firstName) LIKE :pattern
+                 OR LOWER(u.lastName) LIKE :pattern
+                 OR LOWER(u.email) LIKE :pattern
+                 OR LOWER(u.username) LIKE :pattern)
             """)
     Page<User> searchByKeyword(
             @Param("companyId") Long companyId,
             @Param("active") boolean active,
             @Param("keyword") String keyword,
+            @Param("pattern") String pattern,
             Pageable pageable
     );
 
