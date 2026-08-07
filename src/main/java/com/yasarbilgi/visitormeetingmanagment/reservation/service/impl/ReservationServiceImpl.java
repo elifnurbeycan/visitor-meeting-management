@@ -119,12 +119,6 @@ public class ReservationServiceImpl implements ReservationService {
                 "'" + saved.getTitle() + "' başlıklı rezervasyon talebiniz oluşturuldu ve onay bekliyor."
         );
 
-        reservationNotificationService.notifyOrganizerOnly(
-                saved,
-                "Rezervasyon Talebiniz Oluşturuldu",
-                "'" + saved.getTitle() + "' başlıklı rezervasyon talebiniz oluşturuldu ve onay bekliyor."
-        );
-
         return reservationMapper.toResponseDto(saved);
     }
 
