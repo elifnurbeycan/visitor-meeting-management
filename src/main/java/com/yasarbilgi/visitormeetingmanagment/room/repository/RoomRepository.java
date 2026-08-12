@@ -16,7 +16,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
      * Belirli bir şirkete ait odayı ID üzerinden getirir.
      * Tenant ayrımını korumak için companyId ile birlikte sorgulanır.
      */
-    Optional<Room> findByIdAndCompanyId(Long id, Long companyId);
+    @Query("SELECT r FROM Room r WHERE r.id = :id AND r.company.id = :companyId AND r.archived = false")
+    Optional<Room> findByIdAndCompanyId(@Param("id") Long id, @Param("companyId") Long companyId);
 
     /**
      * Aynı şirket içerisinde aynı isimde başka bir oda olup olmadığını kontrol eder.
@@ -39,30 +40,21 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     /**
      * Belirli bir şirkete ait bütün odaları sayfalanmış şekilde getirir.
      */
-    Page<Room> findAllByCompanyId(
-            Long companyId,
-            Pageable pageable
-    );
+    @Query("SELECT r FROM Room r WHERE r.company.id = :companyId AND r.archived = false")
+    Page<Room> findAllByCompanyId(@Param("companyId") Long companyId, Pageable pageable);
 
     /**
      * Belirli bir şirkete ait aktif veya pasif odaları getirir.
      */
-    Page<Room> findAllByCompanyIdAndActive(
-            Long companyId,
-            boolean active,
-            Pageable pageable
-    );
+    @Query("SELECT r FROM Room r WHERE r.company.id = :companyId AND r.active = :active AND r.archived = false")
+    Page<Room> findAllByCompanyIdAndActive(@Param("companyId") Long companyId, @Param("active") boolean active, Pageable pageable);
 
     /**
      * Belirli bir şirkette kapasitesi verilen değerden büyük veya eşit olan
      * aktif odaları listeler.
      */
-    Page<Room> findAllByCompanyIdAndActiveAndCapacityGreaterThanEqual(
-            Long companyId,
-            boolean active,
-            int capacity,
-            Pageable pageable
-    );
+    @Query("SELECT r FROM Room r WHERE r.company.id = :companyId AND r.active = :active AND r.archived = false AND r.capacity >= :capacity")
+    Page<Room> findAllByCompanyIdAndActiveAndCapacityGreaterThanEqual(@Param("companyId") Long companyId, @Param("active") boolean active, @Param("capacity") int capacity, Pageable pageable);
 
     /**
      * Oda adı, konumu veya açıklaması üzerinde anahtar kelime araması yapar.
@@ -72,6 +64,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             FROM Room r
             WHERE r.company.id = :companyId
               AND r.active = :active
+              AND r.archived = false
               AND (
                     :keyword IS NULL
                     OR LOWER(r.name) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))
@@ -88,5 +81,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
             Pageable pageable
     );
 
-    List<Room> findAllByFeatures_IdAndCompanyId(Long featureId, Long companyId);
+    @Query("SELECT r FROM Room r JOIN r.features f WHERE f.id = :featureId AND r.company.id = :companyId AND r.archived = false")
+    List<Room> findAllByFeatures_IdAndCompanyId(@Param("featureId") Long featureId, @Param("companyId") Long companyId);
 }

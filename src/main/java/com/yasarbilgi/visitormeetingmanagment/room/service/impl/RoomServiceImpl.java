@@ -434,6 +434,22 @@ public class RoomServiceImpl implements RoomService {
         );
     }
 
+    @Override
+    @Transactional
+    public void archive(Long companyId, Long id) {
+        Room room = findRoomOrThrow(companyId, id);
+        room.archive();
+        auditLogService.log(
+                companyId,
+                currentUserProvider.getCurrentUser().map(AuthenticatedUser::userId).orElse(null),
+                "ROOM_ARCHIVED",
+                "ROOM",
+                id,
+                "Room archived"
+        );
+        log.info("Room archived successfully with id: {}", id);
+    }
+
     // ----- Private helpers -----
 
     /**

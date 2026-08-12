@@ -10,7 +10,8 @@ public record RoleResponseDto(
         Long id,
         String name,
         String description,
-        Set<PermissionSummary> permissions
+        Set<PermissionSummary> permissions,
+        boolean active
 
 ) {
 

@@ -273,4 +273,14 @@ public class RoomController {
                 )
         );
     }
+
+    @PreAuthorize("hasAuthority('ROOM_DEACTIVATE')")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> archive(
+            @PathVariable Long id,
+            @RequestParam Long companyId
+    ) {
+        roomService.archive(companyId, id);
+        return ResponseEntity.ok(ApiResponse.success("Room archived successfully"));
+    }
 }

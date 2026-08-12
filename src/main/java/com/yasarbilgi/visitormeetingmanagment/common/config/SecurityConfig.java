@@ -53,6 +53,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/companies").permitAll()
                         .requestMatchers("/api/v1/auth/my-login-history").authenticated()
+                        .requestMatchers("/api/v1/auth/me", "/api/v1/auth/me/**", "/api/v1/auth/change-password").authenticated()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/platform/auth/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
@@ -73,6 +74,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Idempotency-Key"));
+        configuration.setExposedHeaders(List.of("Content-Disposition"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -150,7 +150,9 @@ public class ReservationController {
             @PageableDefault(size = 50, sort = "startTime") Pageable pageable
     ) {
         PageResponse<ReservationResponseDto> page = PageResponse.of(
-                reservationService.getAllByDateRange(currentUser.companyId(), from, to, pageable)
+                reservationService.getDepartmentCalendar(
+                        currentUser.companyId(), currentUser.userId(), from, to, pageable
+                )
         );
         return ResponseEntity.ok(ApiResponse.success(page));
     }

@@ -5,8 +5,10 @@ import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.ChangePasswordRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.LoginRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.RefreshTokenRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.UpdateProfileRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.LoginResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.MeResponseDto;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.ProfileJobTitleResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.service.AuthService;
 import com.yasarbilgi.visitormeetingmanagment.common.response.ApiResponse;
 import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
@@ -19,6 +21,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Normal kullanıcı (User) authentication endpoint'leri.
@@ -49,6 +53,22 @@ public class AuthController {
     ) {
         MeResponseDto me = authService.getCurrentUser(currentUser.userId());
         return ResponseEntity.ok(ApiResponse.success(me));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<MeResponseDto>> updateCurrentUser(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody UpdateProfileRequestDto dto
+    ) {
+        MeResponseDto me = authService.updateCurrentUser(currentUser.userId(), dto);
+        return ResponseEntity.ok(ApiResponse.success("Profile updated successfully", me));
+    }
+
+    @GetMapping("/me/job-titles")
+    public ResponseEntity<ApiResponse<List<ProfileJobTitleResponseDto>>> getProfileJobTitles(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(authService.getProfileJobTitles(currentUser.userId())));
     }
 
     /**

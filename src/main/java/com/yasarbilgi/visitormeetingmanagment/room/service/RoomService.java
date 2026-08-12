@@ -70,4 +70,9 @@ public interface RoomService {
             Long companyId,
             Long id
     );
+
+    void archive(
+            Long companyId,
+            Long id
+    );
 }

@@ -13,6 +13,8 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
 
     Optional<Department> findByCompanyIdAndId(Long companyId, Long id);
 
+    Optional<Department> findByCompanyIdAndNameIgnoreCaseAndActiveTrue(Long companyId, String name);
+
     boolean existsByCompanyIdAndName(Long companyId, String name);
 
     Page<Department> findAllByCompanyId(Long companyId, Pageable pageable);

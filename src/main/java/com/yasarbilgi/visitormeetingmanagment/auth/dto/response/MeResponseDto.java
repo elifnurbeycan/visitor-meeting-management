@@ -14,6 +14,9 @@ public record MeResponseDto(
         boolean owner,
         Long companyId,
         String companyName,
+        Long jobTitleId,
+        String jobTitleName,
+        String departmentName,
         Set<String> roleNames,
         Set<String> permissions
 ) {
