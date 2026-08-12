@@ -16,6 +16,7 @@ import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionCacheSe
 import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
 import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UpdateUserRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserDirectoryResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
@@ -40,9 +41,16 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DateUtil;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.web.multipart.MultipartFile;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Locale;
 
 @Slf4j
 @Service
@@ -113,7 +121,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponseDto update(Long companyId, Long userId, UserRequestDto dto) {
+    public UserResponseDto update(Long companyId, Long userId, UpdateUserRequestDto dto) {
         log.info("Updating user with id: {} for company: {}", userId, companyId);
 
         User user = findUserOrThrow(companyId, userId);
@@ -121,23 +129,18 @@ public class UserServiceImpl implements UserService {
         if (!user.getEmail().equals(dto.email())) {
             validateEmailNotTaken(companyId, dto.email());
         }
-        if (!user.getUsername().equals(dto.username())) {
-            validateUsernameNotTaken(dto.username());
-        }
-
         user.updateName(dto.firstName(), dto.lastName());
         user.changeEmail(dto.email());
-        user.changeUsername(dto.username());
-        user.changePasswordHash(passwordEncoder.encode(dto.password()));
+        user.changeJobTitle(dto.jobTitleId() == null ? null : resolveJobTitle(companyId, dto.jobTitleId()));
+        user.changeDepartment(dto.departmentId() == null ? null : resolveDepartment(companyId, dto.departmentId()));
 
-        if (dto.jobTitleId() != null) {
-            JobTitle jobTitle = resolveJobTitle(companyId, dto.jobTitleId());
-            user.changeJobTitle(jobTitle);
-        }
-
-        if (dto.departmentId() != null) {
-            Department department = resolveDepartment(companyId, dto.departmentId());
-            user.changeDepartment(department);
+        if (!user.isOwner()) {
+            if (dto.roleIds() == null || dto.roleIds().isEmpty()) {
+                throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "En az bir rol seçilmelidir.");
+            }
+            Set<Role> roles = resolveRoles(companyId, dto.roleIds());
+            user.getRoles().clear();
+            user.getRoles().addAll(roles);
         }
 
         auditLogService.log(
@@ -645,6 +648,8 @@ public class UserServiceImpl implements UserService {
                 throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, "Excel dosyasında veri bulunamadı.");
             }
 
+            validateImportHeaders(sheet.getRow(0));
+
             // Başlık satırını atlayıp 1. satırdan (ikinci satır) okumaya başlıyoruz
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
@@ -653,27 +658,49 @@ public class UserServiceImpl implements UserService {
                 }
 
                 Cell usernameCell = row.getCell(0);
-                Cell emailCell = row.getCell(1);
+                Cell firstNameCell = row.getCell(1);
+                Cell lastNameCell = row.getCell(2);
+                Cell emailCell = row.getCell(3);
+                Cell departmentCell = row.getCell(4);
 
                 // Satır tamamen boşsa atla
-                if (isCellEmpty(usernameCell) && isCellEmpty(emailCell)) {
+                if (isCellEmpty(usernameCell)
+                        && isCellEmpty(firstNameCell)
+                        && isCellEmpty(lastNameCell)
+                        && isCellEmpty(emailCell)
+                        && isCellEmpty(departmentCell)) {
                     continue;
                 }
 
                 String username = getCellValueAsString(usernameCell);
+                String firstName = getCellValueAsString(firstNameCell);
+                String lastName = getCellValueAsString(lastNameCell);
                 String email = getCellValueAsString(emailCell);
+                String departmentName = getCellValueAsString(departmentCell);
 
                 int rowNum = i + 1; // Hata mesajları için 1 tabanlı satır numarası
 
                 if (username == null || username.isBlank()) {
                     throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, rowNum + ". satırda kullanıcı adı alanı zorunludur.");
                 }
+                if (firstName == null || firstName.isBlank()) {
+                    throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, rowNum + ". satırda ad alanı zorunludur.");
+                }
+                if (lastName == null || lastName.isBlank()) {
+                    throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, rowNum + ". satırda soyad alanı zorunludur.");
+                }
                 if (email == null || email.isBlank()) {
                     throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, rowNum + ". satırda e-posta alanı zorunludur.");
                 }
+                if (departmentName == null || departmentName.isBlank()) {
+                    throw new BusinessException(ErrorCode.BUSINESS_RULE_VIOLATION, rowNum + ". satırda departman alanı zorunludur.");
+                }
 
                 username = username.trim();
+                firstName = firstName.trim();
+                lastName = lastName.trim();
                 email = email.trim().toLowerCase();
+                departmentName = departmentName.trim();
 
                 // E-posta formatı kontrolü
                 if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
@@ -684,15 +711,24 @@ public class UserServiceImpl implements UserService {
                 validateEmailNotTaken(companyId, email);
                 validateUsernameNotTaken(username);
 
+                String resolvedDepartmentName = departmentName;
+                Department department = departmentRepository
+                        .findByCompanyIdAndNameIgnoreCaseAndActiveTrue(companyId, resolvedDepartmentName)
+                        .orElseThrow(() -> new BusinessException(
+                                ErrorCode.BUSINESS_RULE_VIOLATION,
+                                rowNum + ". satırdaki departman bulunamadı veya aktif değil: " + resolvedDepartmentName
+                        ));
+
                 // Varsayılan şifre olarak kullanıcının kendi kullanıcı adı şifreleniyor
                 String defaultPasswordHash = passwordEncoder.encode(username);
 
                 User user = User.builder()
                         .company(company)
-                        .firstName("-") // Geçici placeholder
-                        .lastName("-")  // Geçici placeholder
+                        .firstName(firstName)
+                        .lastName(lastName)
                         .email(email)
                         .username(username)
+                        .department(department)
                         .passwordHash(defaultPasswordHash)
                         .mustChangePassword(true) // İlk girişte şifre değiştirme zorunlu
                         .build();
@@ -727,9 +763,70 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public byte[] generateImportTemplate() {
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Kullanicilar");
+            Row header = sheet.createRow(0);
+            List<String> headers = List.of("username", "ad", "soyad", "email", "departman");
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            for (int index = 0; index < headers.size(); index++) {
+                Cell cell = header.createCell(index);
+                cell.setCellValue(headers.get(index));
+                cell.setCellStyle(headerStyle);
+            }
+
+            sheet.setColumnWidth(0, 22 * 256);
+            sheet.setColumnWidth(1, 18 * 256);
+            sheet.setColumnWidth(2, 18 * 256);
+            sheet.setColumnWidth(3, 32 * 256);
+            sheet.setColumnWidth(4, 28 * 256);
+            sheet.createFreezePane(0, 1);
+
+            workbook.write(output);
+            return output.toByteArray();
+        } catch (java.io.IOException exception) {
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_RULE_VIOLATION,
+                    "Excel şablonu oluşturulamadı."
+            );
+        }
+    }
+
     private boolean isCellEmpty(Cell cell) {
         return cell == null || cell.getCellType() == CellType.BLANK ||
                (cell.getCellType() == CellType.STRING && cell.getStringCellValue().trim().isEmpty());
+    }
+
+    private void validateImportHeaders(Row headerRow) {
+        List<String> expectedHeaders = List.of("username", "ad", "soyad", "email", "departman");
+
+        if (headerRow == null) {
+            throw new BusinessException(
+                    ErrorCode.BUSINESS_RULE_VIOLATION,
+                    "Excel başlık satırı bulunamadı. Beklenen sütunlar: username, ad, soyad, email, departman."
+            );
+        }
+
+        for (int index = 0; index < expectedHeaders.size(); index++) {
+            String actual = getCellValueAsString(headerRow.getCell(index));
+            String normalized = actual == null ? "" : actual.trim().toLowerCase(Locale.ROOT);
+            if (!expectedHeaders.get(index).equals(normalized)) {
+                throw new BusinessException(
+                        ErrorCode.BUSINESS_RULE_VIOLATION,
+                        "Excel sütunları sırasıyla username, ad, soyad, email, departman olmalıdır."
+                );
+            }
+        }
     }
 
     private String getCellValueAsString(Cell cell) {

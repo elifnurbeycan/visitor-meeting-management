@@ -5,6 +5,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import com.yasarbilgi.visitormeetingmanagment.common.response.PageResponse;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UpdateUserRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserDirectoryResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.service.UserService;
@@ -13,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -48,7 +51,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponseDto>> update(
             @PathVariable Long companyId,
             @PathVariable Long userId,
-            @Valid @RequestBody UserRequestDto dto
+            @Valid @RequestBody UpdateUserRequestDto dto
     ) {
         UserResponseDto updated = userService.update(companyId, userId, dto);
         return ResponseEntity.ok(ApiResponse.success("User updated successfully", updated));
@@ -258,6 +261,15 @@ public class UserController {
     ) {
         userService.forcePasswordReset(companyId, userId);
         return ResponseEntity.ok(ApiResponse.success("User will be required to change password on next login"));
+    }
+
+    @PreAuthorize("hasAuthority('USER_CREATE')")
+    @GetMapping("/import-template")
+    public ResponseEntity<byte[]> downloadImportTemplate() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=toplu-kullanici-sablonu.xlsx")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(userService.generateImportTemplate());
     }
 
     @PreAuthorize("hasAuthority('USER_CREATE')")

@@ -93,6 +93,25 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     @Query("""
+        SELECT r FROM Reservation r
+        WHERE r.company.id = :companyId
+        AND r.startTime < :rangeEnd
+        AND r.endTime > :rangeStart
+        AND (
+            r.organizer.id = :userId
+            OR (:departmentId IS NOT NULL AND r.organizer.department.id = :departmentId)
+        )
+        """)
+    Page<Reservation> findDepartmentCalendarReservations(
+            @Param("companyId") Long companyId,
+            @Param("userId") Long userId,
+            @Param("departmentId") Long departmentId,
+            @Param("rangeEnd") LocalDateTime rangeEnd,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            Pageable pageable
+    );
+
+    @Query("""
         SELECT r.room.id AS roomId,
                r.room.name AS roomName,
                COUNT(r) AS reservationCount,

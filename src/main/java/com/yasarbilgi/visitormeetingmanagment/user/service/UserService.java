@@ -1,6 +1,7 @@
 package com.yasarbilgi.visitormeetingmanagment.user.service;
 
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UpdateUserRequestDto;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserDirectoryResponseDto;
@@ -14,7 +15,7 @@ public interface UserService {
 
     UserResponseDto create(Long companyId, UserRequestDto dto);
 
-    UserResponseDto update(Long companyId, Long userId, UserRequestDto dto);
+    UserResponseDto update(Long companyId, Long userId, UpdateUserRequestDto dto);
 
     UserResponseDto getById(Long companyId, Long userId);
 
@@ -73,5 +74,7 @@ public interface UserService {
     void forcePasswordReset(Long companyId, Long userId);
 
     List<UserResponseDto> importUsers(Long companyId, MultipartFile file);
+
+    byte[] generateImportTemplate();
 
 }

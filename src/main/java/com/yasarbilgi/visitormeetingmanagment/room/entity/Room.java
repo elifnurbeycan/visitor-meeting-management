@@ -53,6 +53,10 @@ public class Room extends TenantBaseEntity {
     private String description;
 
     @Builder.Default
+    @Column(name = "archived", nullable = false)
+    private boolean archived = false;
+
+    @Builder.Default
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "room_features",
@@ -97,6 +101,11 @@ public class Room extends TenantBaseEntity {
 
     public boolean hasFeature(Feature feature) {
         return this.features.contains(feature);
+    }
+
+    public void archive() {
+        this.archived = true;
+        deactivate();
     }
 
 

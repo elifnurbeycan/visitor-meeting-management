@@ -316,10 +316,26 @@ public class ReservationServiceImpl implements ReservationService {
     public Page<ReservationResponseDto> getAllByDateRange(
             Long companyId, LocalDateTime from, LocalDateTime to, Pageable pageable
     ) {
-        log.debug("Fetching reservations for company: {} between {} and {}", companyId, from, to);
-
         return reservationRepository
                 .findAllByCompanyIdAndStartTimeLessThanAndEndTimeGreaterThan(companyId, to, from, pageable)
+                .map(reservationMapper::toResponseDto);
+    }
+
+    @Override
+    public Page<ReservationResponseDto> getDepartmentCalendar(
+            Long companyId, Long userId, LocalDateTime from, LocalDateTime to, Pageable pageable
+    ) {
+        log.debug("Fetching department calendar for user: {} in company: {} between {} and {}", userId, companyId, from, to);
+
+        User currentUser = findUserAndValidateTenant(userId, companyId);
+        Long departmentId = currentUser.getDepartment() == null
+                ? null
+                : currentUser.getDepartment().getId();
+
+        return reservationRepository
+                .findDepartmentCalendarReservations(
+                        companyId, userId, departmentId, to, from, pageable
+                )
                 .map(reservationMapper::toResponseDto);
     }
 

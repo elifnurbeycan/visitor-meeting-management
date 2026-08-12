@@ -16,6 +16,7 @@ import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionCacheSe
 import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
 import com.yasarbilgi.visitormeetingmanagment.security.util.CurrentUserProvider;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UserRequestDto;
+import com.yasarbilgi.visitormeetingmanagment.user.dto.request.UpdateUserRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.user.dto.response.UserResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import com.yasarbilgi.visitormeetingmanagment.user.mapper.UserMapper;
@@ -478,16 +479,10 @@ class UserServiceImplTest {
 
     @Test
     void update_shouldSucceed_whenRequestIsValid() {
-        UserRequestDto dto = UserRequestDto.builder()
-                .firstName("Emir Can")
-                .lastName("Doğruer")
-                .email("new@test.com")
-                .username("newusername")
-                .password("87654321")
-                .jobTitleId(JOB_TITLE_ID)
-                .departmentId(DEPARTMENT_ID)
-                .roleIds(Set.of(ROLE_ID))
-                .build();
+        UpdateUserRequestDto dto = new UpdateUserRequestDto(
+                "Emir Can", "Doğruer", "new@test.com",
+                JOB_TITLE_ID, DEPARTMENT_ID, Set.of(ROLE_ID)
+        );
 
         when(userRepository.findById(USER_ID))
                 .thenReturn(Optional.of(user));
@@ -497,17 +492,13 @@ class UserServiceImplTest {
                 dto.email()
         )).thenReturn(false);
 
-        when(userRepository.existsByUsername(dto.username()))
-                .thenReturn(false);
-
-        when(passwordEncoder.encode(dto.password()))
-                .thenReturn("newEncodedPassword");
-
         when(jobTitleRepository.findById(JOB_TITLE_ID))
                 .thenReturn(Optional.of(jobTitle));
 
         when(departmentRepository.findById(DEPARTMENT_ID))
                 .thenReturn(Optional.of(department));
+
+        when(roleRepository.findById(ROLE_ID)).thenReturn(Optional.of(role));
 
         when(userMapper.toResponseDto(user))
                 .thenReturn(responseDto);
@@ -519,33 +510,23 @@ class UserServiceImplTest {
         assertThat(user.getFirstName()).isEqualTo("Emir Can");
         assertThat(user.getLastName()).isEqualTo("Doğruer");
         assertThat(user.getEmail()).isEqualTo("new@test.com");
-        assertThat(user.getUsername()).isEqualTo("newusername");
-        assertThat(user.getPasswordHash())
-                .isEqualTo("newEncodedPassword");
+        assertThat(user.getUsername()).isEqualTo("emird");
         assertThat(user.getJobTitle()).isEqualTo(jobTitle);
         assertThat(user.getDepartment()).isEqualTo(department);
 
-        verify(passwordEncoder).encode("87654321");
+        verify(passwordEncoder, never()).encode(anyString());
     }
 
     @Test
     void update_shouldNotCheckUniqueness_whenEmailAndUsernameUnchanged() {
-        UserRequestDto dto = UserRequestDto.builder()
-                .firstName("Updated")
-                .lastName("User")
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .password("12345678")
-                .jobTitleId(null)
-                .departmentId(null)
-                .roleIds(Set.of())
-                .build();
+        UpdateUserRequestDto dto = new UpdateUserRequestDto(
+                "Updated", "User", user.getEmail(), null, null, Set.of(ROLE_ID)
+        );
 
         when(userRepository.findById(USER_ID))
                 .thenReturn(Optional.of(user));
 
-        when(passwordEncoder.encode(dto.password()))
-                .thenReturn("updatedPassword");
+        when(roleRepository.findById(ROLE_ID)).thenReturn(Optional.of(role));
 
         when(userMapper.toResponseDto(user))
                 .thenReturn(responseDto);
@@ -567,7 +548,9 @@ class UserServiceImplTest {
 
     @Test
     void update_shouldThrowException_whenUserNotFound() {
-        UserRequestDto dto = createRequestDto();
+        UpdateUserRequestDto dto = new UpdateUserRequestDto(
+                "Emir", "Doğruer", "emir@test.com", JOB_TITLE_ID, DEPARTMENT_ID, Set.of(ROLE_ID)
+        );
 
         when(userRepository.findById(USER_ID))
                 .thenReturn(Optional.empty());
@@ -602,7 +585,7 @@ class UserServiceImplTest {
                 () -> userService.update(
                         COMPANY_ID,
                         USER_ID,
-                        createRequestDto()
+                        new UpdateUserRequestDto("Emir", "Doğruer", "emir@test.com", JOB_TITLE_ID, DEPARTMENT_ID, Set.of(ROLE_ID))
                 )
         )
                 .isInstanceOf(BusinessException.class)
@@ -1391,8 +1374,8 @@ class UserServiceImplTest {
     @Test
     void importUsers_shouldSucceed() throws IOException {
         MockMultipartFile file = createMockExcelFile(List.of(
-                new String[]{"Kullanıcı Adı", "E-posta"},
-                new String[]{"john.doe", "john@example.com"}
+                new String[]{"username", "ad", "soyad", "email", "departman"},
+                new String[]{"john.doe", "John", "Doe", "john@example.com", "IT"}
         ));
 
         when(companyRepository.findById(COMPANY_ID)).thenReturn(Optional.of(company));
@@ -1402,6 +1385,8 @@ class UserServiceImplTest {
                 .thenReturn(Optional.of(defaultRole));
 
         when(passwordEncoder.encode("john.doe")).thenReturn("hashedPassword");
+        when(departmentRepository.findByCompanyIdAndNameIgnoreCaseAndActiveTrue(COMPANY_ID, "IT"))
+                .thenReturn(Optional.of(department));
 
         when(userRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(userMapper.toResponseDto(any())).thenReturn(mock(UserResponseDto.class));
@@ -1426,8 +1411,8 @@ class UserServiceImplTest {
     @Test
     void importUsers_shouldThrowException_whenUsernameMissing() throws IOException {
         MockMultipartFile file = createMockExcelFile(List.of(
-                new String[]{"Kullanıcı Adı", "E-posta"},
-                new String[]{"", "john@example.com"}
+                new String[]{"username", "ad", "soyad", "email", "departman"},
+                new String[]{"", "John", "Doe", "john@example.com", "IT"}
         ));
 
         when(companyRepository.findById(COMPANY_ID)).thenReturn(Optional.of(company));
@@ -1444,8 +1429,8 @@ class UserServiceImplTest {
     @Test
     void importUsers_shouldThrowException_whenEmailInvalid() throws IOException {
         MockMultipartFile file = createMockExcelFile(List.of(
-                new String[]{"Kullanıcı Adı", "E-posta"},
-                new String[]{"john.doe", "invalid-email"}
+                new String[]{"username", "ad", "soyad", "email", "departman"},
+                new String[]{"john.doe", "John", "Doe", "invalid-email", "IT"}
         ));
 
         when(companyRepository.findById(COMPANY_ID)).thenReturn(Optional.of(company));

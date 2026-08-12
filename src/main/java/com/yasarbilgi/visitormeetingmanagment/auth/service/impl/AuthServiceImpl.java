@@ -3,6 +3,8 @@ package com.yasarbilgi.visitormeetingmanagment.auth.service.impl;
 import com.yasarbilgi.visitormeetingmanagment.audit.service.AuditLogService;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.LoginResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.MeResponseDto;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.ProfileJobTitleResponseDto;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.UpdateProfileRequestDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.service.AuthService;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.BusinessException;
 import com.yasarbilgi.visitormeetingmanagment.common.exception.ErrorCode;
@@ -19,6 +21,8 @@ import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionCacheSe
 import com.yasarbilgi.visitormeetingmanagment.security.service.PermissionResolutionService;
 import com.yasarbilgi.visitormeetingmanagment.user.entity.User;
 import com.yasarbilgi.visitormeetingmanagment.user.repository.UserRepository;
+import com.yasarbilgi.visitormeetingmanagment.job.entity.JobTitle;
+import com.yasarbilgi.visitormeetingmanagment.job.repository.JobTitleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,6 +36,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -44,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     private static final String TARGET_TYPE_AUTH = "AUTH";
 
     private final UserRepository userRepository;
+    private final JobTitleRepository jobTitleRepository;
     private final CompanyRepository companyRepository;
     private final SuperAdminRepository superAdminRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -254,9 +260,52 @@ public class AuthServiceImpl implements AuthService {
                 .owner(user.isOwner())
                 .companyId(user.getCompany().getId())
                 .companyName(user.getCompany().getName())
+                .jobTitleId(user.getJobTitle() != null ? user.getJobTitle().getId() : null)
+                .jobTitleName(user.getJobTitle() != null ? user.getJobTitle().getName() : null)
+                .departmentName(user.getDepartment() != null ? user.getDepartment().getName() : null)
                 .roleNames(roleNames)
                 .permissions(permissions)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public MeResponseDto updateCurrentUser(Long userId, UpdateProfileRequestDto dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        String email = dto.email().trim();
+        if (!user.getEmail().equalsIgnoreCase(email)
+                && userRepository.existsByCompanyIdAndEmail(user.getCompany().getId(), email)) {
+            throw new BusinessException(ErrorCode.USER_ALREADY_EXISTS);
+        }
+
+        user.updateName(dto.firstName().trim(), dto.lastName().trim());
+        user.changeEmail(email);
+        JobTitle jobTitle = dto.jobTitleId() == null ? null : jobTitleRepository
+                .findByIdAndCompanyId(dto.jobTitleId(), user.getCompany().getId())
+                .filter(JobTitle::isActive)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JOB_TITLE_NOT_FOUND));
+        user.changeJobTitle(jobTitle);
+
+        auditLogService.log(
+                user.getCompany().getId(), user.getId(), "PROFILE_UPDATED", "USER", user.getId(),
+                "User '" + user.getFullName() + "' updated own profile"
+        );
+
+        return getCurrentUser(userId);
+    }
+
+    @Override
+    public List<ProfileJobTitleResponseDto> getProfileJobTitles(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        return jobTitleRepository.findAllByCompanyIdAndActive(
+                        user.getCompany().getId(), true, org.springframework.data.domain.Pageable.unpaged())
+                .stream()
+                .sorted(java.util.Comparator.comparing(JobTitle::getName))
+                .map(jobTitle -> new ProfileJobTitleResponseDto(jobTitle.getId(), jobTitle.getName()))
+                .toList();
     }
 
     @Override

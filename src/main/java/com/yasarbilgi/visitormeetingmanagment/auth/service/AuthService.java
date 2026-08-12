@@ -2,6 +2,9 @@ package com.yasarbilgi.visitormeetingmanagment.auth.service;
 
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.LoginResponseDto;
 import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.MeResponseDto;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.response.ProfileJobTitleResponseDto;
+import java.util.List;
+import com.yasarbilgi.visitormeetingmanagment.auth.dto.request.UpdateProfileRequestDto;
 
 public interface AuthService {
 
@@ -12,6 +15,10 @@ public interface AuthService {
     LoginResponseDto refresh(String refreshToken);
 
     MeResponseDto getCurrentUser(Long userId);
+
+    MeResponseDto updateCurrentUser(Long userId, UpdateProfileRequestDto dto);
+
+    List<ProfileJobTitleResponseDto> getProfileJobTitles(Long userId);
 
     void logout(String refreshToken);
 
