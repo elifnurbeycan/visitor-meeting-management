@@ -112,8 +112,11 @@ public class AuditLogExportServiceImpl implements AuditLogExportService {
 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             if (byCategory.isEmpty()) {
-                writeCategorySheet(workbook, "Audit Loglari", List.of(), actorNames);
+                writeCategorySheet(workbook, "Tüm Kayıtlar", List.of(), actorNames);
             } else {
+                // Dosya açıldığında kullanıcı önce bütün kayıtları tek listede görür.
+                // Kaynak bazlı sekmeler ayrıntılı inceleme için ayrıca korunur.
+                writeCategorySheet(workbook, "Tüm Kayıtlar", logs, actorNames);
                 for (Map.Entry<String, List<AuditLog>> entry : byCategory.entrySet()) {
                     writeCategorySheet(workbook, entry.getKey(), entry.getValue(), actorNames);
                 }
